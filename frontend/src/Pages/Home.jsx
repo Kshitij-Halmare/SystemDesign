@@ -1,47 +1,72 @@
 import React from 'react';
+import image from "../assets/react.svg";
+import dashboardImage from "../assets/dashboardImage.jpg";
 
 function Home() {
   return (
-    <div style={{
-      position: 'relative',
-      width: '100%',
-      height: '1000px',
-      overflow: 'hidden',
-      background: '#111'
-    }}>
-      {/* Glowing semicircle positioned 500px from bottom */}
-      <div style={{
-        position: 'absolute',
-        bottom: '500px', // Positioned 500px from bottom
-        left: 0,
-        width: '100%',
-        height: '50px', // Proper semicircle height
-        background: 'transparent',
-        borderTop: '2px solid rgba(204, 153, 51, 0.3)',
-        borderLeft: '2px solid rgba(204, 153, 51, 0.3)',
-        borderRight: '2px solid rgba(204, 153, 51, 0.3)',
-        borderBottom: 'none',
-        borderRadius: '50% 50% 0 0',
-        boxShadow: `
-          0 -10px 30px rgba(204, 153, 51, 0.7),
-          0 -5px 15px rgba(255, 215, 0, 0.9)
-        `,
-        animation: 'glow-pulse 4s ease-in-out infinite',
-        zIndex: 100
-      }}></div>
+    <div className="relative min-h-screen flex flex-col items-center pt-32 px-4 sm:px-6 lg:px-8 overflow-hidden ">
 
-      <style>{`
+      {/* Glowing semicircle behind the image */}
+      <div className="absolute top-[calc(50%-5px)] left-1/2 transform -translate-x-1/2 w-[600px] h-[300px] z-0 pointer-events-none">
+        <div className="relative w-full h-full">
+          <div className="absolute bottom-0 left-0 w-full h-full 
+            bg-[radial-gradient(ellipse_at_top,rgba(255,215,0,0.6),transparent_60%)]
+            rounded-t-full
+            shadow-[0_-60px_200px_rgba(255,215,0,0.7)]
+            animate-glow-pulse">
+          </div>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="relative z-10 text-center max-w-4xl mx-auto">
+        <h1 className="text-5xl md:text-7xl font-extrabold mb-6">
+          <span className="bg-gradient-to-r from-white via-gray-300 to-gray-500 bg-clip-text text-transparent">
+            Give Your Big Idea The<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-300 to-gray-500">
+              Design It Deserves
+            </span>
+          </span>
+        </h1>
+
+        <p className="text-xl md:text-2xl text-gray-300 mb-10 max-w-3xl mx-auto leading-relaxed">
+          Professionally designed blocks and templates built with React, Shadcn/ui and Tailwind
+        </p>
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
+          <button className="px-8 py-3 rounded-lg bg-gradient-to-r from-white to-gray-500 text-black font-medium hover:from-gray-100 hover:to-gray-400 transition-all duration-300 shadow-lg shadow-gray-400/20 hover:shadow-gray-400/40">
+            Get Started
+          </button>
+          <button className="flex items-center justify-center gap-2 px-8 py-3 rounded-lg bg-white/10 backdrop-blur-lg text-white font-medium border border-white/20 hover:bg-white/20 transition-all duration-300">
+            <img src={image} className="h-5 w-5" alt="GitHub" />
+            GitHub
+          </button>
+        </div>
+
+        {/* Dashboard image preview */}
+        <div className="relative z-20 mt-10 max-w-4xl rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-gray-800">
+          <img
+            src={dashboardImage}
+            alt="Dashboard Preview"
+            className="w-full h-auto object-cover relative z-10"
+          />
+        </div>
+      </div>
+
+      {/* Keyframe style */}
+      <style jsx>{`
         @keyframes glow-pulse {
           0%, 100% {
-            box-shadow: 
-              0 -10px 30px rgba(204, 153, 51, 0.7),
-              0 -5px 15px rgba(255, 215, 0, 0.9);
+            opacity: 0.8;
+            filter: blur(2px);
           }
           50% {
-            box-shadow: 
-              0 -15px 50px rgba(204, 153, 51, 0.9),
-              0 -10px 30px rgba(255, 215, 0, 1);
+            opacity: 1;
+            filter: blur(10px);
           }
+        }
+        .animate-glow-pulse {
+          animation: glow-pulse 4s ease-in-out infinite;
         }
       `}</style>
     </div>
