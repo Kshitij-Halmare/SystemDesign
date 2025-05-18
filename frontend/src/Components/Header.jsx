@@ -2,7 +2,7 @@ import React from 'react'
 import image from "../assets/react.svg"
 function Header() {
   return (
-    <div className=' h-12 px-5 text-gray-200 font-serif'>
+    <div className=' h-12 px-5 text-gray-200 font-serif overflow-hidden'>
       <div className='h-full flex items-center justify-between'>
         <div className='flex justify-center items-center gap-4'>
           <div className='flex justify-center items-center gap-2'>
