@@ -1,7 +1,9 @@
 import React from 'react'
+import FadeInWrapper from '../Animation/FadeinWrapper';
 
 function Signin() {
   return (
+    <FadeInWrapper>
     <div className="relative flex items-center justify-center min-h-screen p-4 overflow-hidden ">
       {/* Enhanced Glowing semicircle element */}
       <div className="absolute bottom-34 left-1/2 transform -translate-x-1/2 w-[300px] h-[150px] z-0 pointer-events-none">
@@ -84,6 +86,7 @@ function Signin() {
         }
       `}</style>
     </div>
+    </FadeInWrapper>
   );
 }
 

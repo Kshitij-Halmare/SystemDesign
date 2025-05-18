@@ -4,7 +4,7 @@ import image from "../assets/react.svg";
 
 function Header() {
   return (
-    <header className='h-16 px-6 bg-gray-900 text-gray-200 font-serif shadow-md'>
+    <header className='h-16 px-6  text-gray-200 font-serif shadow-md'>
       <div className='h-full flex items-center justify-between'>
         
         {/* Left: Logo and Nav Links */}
@@ -17,22 +17,22 @@ function Header() {
           <nav className='flex gap-4 text-sm'>
             <NavLink 
               to="/docs" 
-              className={({ isActive }) => isActive ? "text-blue-400" : "hover:text-blue-300"}>
+              className={({ isActive }) => isActive ? "text-gray-400" : "hover:text-white"}>
               Docs
             </NavLink>
             <NavLink 
               to="/components" 
-              className={({ isActive }) => isActive ? "text-blue-400" : "hover:text-blue-300"}>
+              className={({ isActive }) => isActive ? "text-gray-400" : "hover:text-white"}>
               Components
             </NavLink>
             <NavLink 
               to="/blocks" 
-              className={({ isActive }) => isActive ? "text-blue-400" : "hover:text-blue-300"}>
+              className={({ isActive }) => isActive ? "text-gray-400" : "hover:text-white"}>
               Blocks
             </NavLink>
             <NavLink 
               to="/templates" 
-              className={({ isActive }) => isActive ? "text-blue-400" : "hover:text-blue-300"}>
+              className={({ isActive }) => isActive ? "text-gray-400" : "hover:text-white"}>
               Templates
             </NavLink>
           </nav>
@@ -42,12 +42,12 @@ function Header() {
         <div className='flex items-center gap-4 text-sm'>
           <NavLink 
             to="/register" 
-            className={({ isActive }) => isActive ? "text-blue-400" : "hover:text-blue-300"}>
+            className={({ isActive }) => isActive ? "text-gray-400" : "hover:text-white"}>
             Register
           </NavLink>
           <NavLink 
             to="/signin" 
-            className={({ isActive }) => isActive ? "text-blue-400" : "hover:text-blue-300"}>
+            className={({ isActive }) => isActive ? "text-gray-400" : "hover:text-white"}>
             Signin
           </NavLink>
           <img src={image} alt='Secondary Logo' className='h-5 w-5' />
