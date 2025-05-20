@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import FadeInWrapper from '../Animation/FadeinWrapper';
 import defaultImage from "../assets/21-avatar.gif";
-import {useNavigate} from "react-router-dom"
+import { useNavigate } from "react-router-dom"
+import toast from 'react-hot-toast';
 function Register() {
   const [data, setData] = useState({
     name: "",
@@ -13,17 +14,60 @@ function Register() {
     image: null,
   });
 
-  const navigate=useNavigate();
+  const navigate = useNavigate();
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       setData({ ...data, image: URL.createObjectURL(file) });
     }
   };
+  const submit = async (e) => {
+    e.preventDefault();
+
+    const { name, email, password, confirmPassword, occupation, dob, image } = data;
+
+    if (!name || !email || !password || !confirmPassword || !occupation || !dob ) {
+      toast.error("All fields are required");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match!");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("email", email);
+    formData.append("password", password);
+    formData.append("confirmPassword", confirmPassword);
+    formData.append("occupation", occupation);
+    formData.append("dob", dob);
+    formData.append("image", image);
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_SERVER_DOMAIN}/api/user/register`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const resData = await response.json();
+
+      if (response.status === 200) {
+        toast.success("User registered successfully");
+        navigate("/signin");
+      } else {
+        toast.error(resData.message || "Something went wrong");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Server error");
+    }
+  };
 
   return (
     <FadeInWrapper>
-      <div className="relative flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-black via-gray-900 to-black overflow-hidden">
+      <div className="relative flex items-center justify-center min-h-screen p-4 overflow-hidden">
         {/* Glowing semicircle */}
         <div className="absolute bottom-15 left-1/2 transform -translate-x-1/2 w-[400px] h-[200px] z-0 pointer-events-none">
           <div className="relative w-full h-full">
@@ -158,6 +202,7 @@ function Register() {
             {/* Submit Button */}
             <button
               type="submit"
+              onClick={submit}
               className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-semibold rounded-lg shadow-md shadow-blue-500/30 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               Register
@@ -168,7 +213,7 @@ function Register() {
           <div className="mt-6 text-center">
             <p className="text-gray-400">
               Already have an account?{' '}
-              <a  onClick={()=>navigate("/signin")} className="text-blue-400 hover:text-blue-300 font-medium transition-colors duration-300">
+              <a onClick={() => navigate("/signin")} className="text-blue-400 hover:text-blue-300 font-medium transition-colors duration-300">
                 Sign in
               </a>
             </p>
