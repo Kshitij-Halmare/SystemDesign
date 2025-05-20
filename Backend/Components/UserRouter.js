@@ -39,6 +39,7 @@ export async function Register(req,res) {
         return res.status(500).json({
             success: false,
             error: true,
+            user:newUser,
             message: `An error occurred: ${error.message}`,
         });
     }
