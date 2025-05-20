@@ -1,67 +1,93 @@
 import React, { useState } from 'react';
-import FadeInWrapper from '../Animation/FadeinWrapper';
-import defaultImage from "../assets/21-avatar.gif";
-import { useNavigate } from "react-router-dom"
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import defaultImage from '../assets/21-avatar.gif';
+import FadeInWrapper from '../Animation/FadeinWrapper';
+
 function Register() {
-  const [data, setData] = useState({
-    name: "",
-    email: "",
-    occupation: "",
-    dob: "",
-    password: "",
-    confirmPassword: "",
-    image: null,
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    occupation: '',
+    dob: '',
+    password: '',
+    confirmPassword: '',
+    imageFile: null,
+    imagePreview: defaultImage,
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setData({ ...data, image: URL.createObjectURL(file) });
+      if (!file.type.match('image.*')) {
+        toast.error('Please select an image file');
+        return;
+      }
+      
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image size must be less than 5MB');
+        return;
+      }
+
+      setFormData({
+        ...formData,
+        imageFile: file,
+        imagePreview: URL.createObjectURL(file),
+      });
     }
   };
-  const submit = async (e) => {
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
-    const { name, email, password, confirmPassword, occupation, dob, image } = data;
+    const { name, email, password, confirmPassword, occupation, dob, imageFile } = formData;
 
-    if (!name || !email || !password || !confirmPassword || !occupation || !dob ) {
-      toast.error("All fields are required");
+    if (!name || !email || !password || !confirmPassword || !occupation || !dob) {
+      toast.error('All fields are required');
+      setIsSubmitting(false);
       return;
     }
 
     if (password !== confirmPassword) {
-      toast.error("Passwords do not match!");
+      toast.error('Passwords do not match');
+      setIsSubmitting(false);
       return;
     }
 
-    const formData = new FormData();
-    formData.append("name", name);
-    formData.append("email", email);
-    formData.append("password", password);
-    formData.append("confirmPassword", confirmPassword);
-    formData.append("occupation", occupation);
-    formData.append("dob", dob);
-    formData.append("image", image);
+    const formDataToSend = new FormData();
+    formDataToSend.append('name', name);
+    formDataToSend.append('email', email);
+    formDataToSend.append('password', password);
+    formDataToSend.append('confirmPassword', confirmPassword);
+    formDataToSend.append('occupation', occupation);
+    formDataToSend.append('dob', dob);
+    if (imageFile) {
+      formDataToSend.append('image', imageFile);
+    }
 
     try {
       const response = await fetch(`${import.meta.env.VITE_SERVER_DOMAIN}/api/user/register`, {
-        method: "POST",
-        body: formData,
+        method: 'POST',
+        body: formDataToSend,
       });
 
-      const resData = await response.json();
+      const data = await response.json();
 
-      if (response.status === 200) {
-        toast.success("User registered successfully");
-        navigate("/signin");
-      } else {
-        toast.error(resData.message || "Something went wrong");
+      if (!response.ok) {
+        throw new Error(data.message || 'Registration failed');
       }
+
+      toast.success('Registration successful!');
+      navigate('/signin');
     } catch (error) {
-      console.error("Error:", error);
-      toast.error("Server error");
+      console.error('Registration error:', error);
+      toast.error(error.message || 'Registration failed. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -71,12 +97,13 @@ function Register() {
         {/* Glowing semicircle */}
         <div className="absolute bottom-15 left-1/2 transform -translate-x-1/2 w-[400px] h-[200px] z-0 pointer-events-none">
           <div className="relative w-full h-full">
-            <div className="absolute bottom-0 left-0 w-full h-full 
+            <div
+              className="absolute bottom-0 left-0 w-full h-full 
               bg-[radial-gradient(ellipse_at_top,rgba(255,215,0,0.6),transparent_60%)]
               rounded-t-full
               shadow-[0_-60px_200px_rgba(255,215,0,0.7)]
-              animate-glow-pulse">
-            </div>
+              animate-glow-pulse"
+            ></div>
           </div>
         </div>
 
@@ -91,7 +118,7 @@ function Register() {
           <div className="flex flex-col items-center mb-6">
             <label htmlFor="imageUpload" className="cursor-pointer">
               <img
-                src={data.image || defaultImage}
+                src={formData.imagePreview}
                 alt="avatar"
                 className="h-32 w-32 rounded-full border-4 border-blue-400 shadow-lg object-cover hover:opacity-90 transition"
               />
@@ -106,7 +133,7 @@ function Register() {
             />
           </div>
 
-          <form className="space-y-5">
+          <form className="space-y-5" onSubmit={handleSubmit}>
             {/* Name */}
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-1">
@@ -115,8 +142,8 @@ function Register() {
               <input
                 type="text"
                 id="name"
-                value={data.name}
-                onChange={(e) => setData({ ...data, name: e.target.value })}
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="John Doe"
               />
@@ -130,8 +157,8 @@ function Register() {
               <input
                 type="email"
                 id="email"
-                value={data.email}
-                onChange={(e) => setData({ ...data, email: e.target.value })}
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="your@email.com"
               />
@@ -144,9 +171,9 @@ function Register() {
               </label>
               <select
                 id="occupation"
-                value={data.occupation}
-                onChange={(e) => setData({ ...data, occupation: e.target.value })}
-                className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={formData.occupation}
+                onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
+                className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="" disabled>Select your occupation</option>
                 <option value="Student">Student</option>
@@ -163,9 +190,9 @@ function Register() {
               <input
                 type="date"
                 id="dob"
-                value={data.dob}
-                onChange={(e) => setData({ ...data, dob: e.target.value })}
-                className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={formData.dob}
+                onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
@@ -177,8 +204,8 @@ function Register() {
               <input
                 type="password"
                 id="password"
-                value={data.password}
-                onChange={(e) => setData({ ...data, password: e.target.value })}
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="••••••••"
               />
@@ -192,8 +219,8 @@ function Register() {
               <input
                 type="password"
                 id="confirmPassword"
-                value={data.confirmPassword}
-                onChange={(e) => setData({ ...data, confirmPassword: e.target.value })}
+                value={formData.confirmPassword}
+                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                 className="w-full px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="••••••••"
               />
@@ -202,10 +229,12 @@ function Register() {
             {/* Submit Button */}
             <button
               type="submit"
-              onClick={submit}
-              className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-semibold rounded-lg shadow-md shadow-blue-500/30 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              disabled={isSubmitting}
+              className={`w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-semibold rounded-lg shadow-md shadow-blue-500/30 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
-              Register
+              {isSubmitting ? 'Registering...' : 'Register'}
             </button>
           </form>
 
@@ -213,9 +242,12 @@ function Register() {
           <div className="mt-6 text-center">
             <p className="text-gray-400">
               Already have an account?{' '}
-              <a onClick={() => navigate("/signin")} className="text-blue-400 hover:text-blue-300 font-medium transition-colors duration-300">
+              <span
+                onClick={() => navigate('/signin')}
+                className="text-blue-400 hover:text-blue-300 font-medium cursor-pointer transition-colors duration-300"
+              >
                 Sign in
-              </a>
+              </span>
             </p>
           </div>
         </div>

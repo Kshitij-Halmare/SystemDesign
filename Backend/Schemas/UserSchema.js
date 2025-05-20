@@ -26,7 +26,6 @@ const UserSchema = new mongoose.Schema({
     required: [true, "Provide password"],
     trim: true
   },
-  
   image: {
     type: String, // if storing as base64 or URL
     default: null

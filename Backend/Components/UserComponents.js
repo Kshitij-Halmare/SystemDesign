@@ -3,60 +3,78 @@ import uploadImageCloudinary from "../Utils/uploadImage.js";
 import bcryptjs from "bcryptjs";
 
 export async function Register(req, res) {
-  console.log(req.body);
-  const { name, email, password, occupation, dob } = req.body;
+  const { name, email, password, confirmPassword, occupation, dob } = req.body;
   const file = req.file;
 
-  console.log({ name, email, password, occupation, dob });
-
-  if (!name || !email || !password || !occupation || !dob) {
+  // Validation
+  if (!name || !email || !password || !confirmPassword || !occupation || !dob) {
     return res.status(400).json({
       success: false,
-      error: true,
-      message: "All fields are required.",
+      message: "All fields are required",
+    });
+  }
+
+  if (password !== confirmPassword) {
+    return res.status(400).json({
+      success: false,
+      message: "Passwords do not match",
     });
   }
 
   try {
-    const existingUser = await User.findOne({ email: email });
+    // Check if user exists
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({
+      return res.status(409).json({
         success: false,
-        error: true,
-        message: "User already exists, please log in.",
+        message: "User already exists",
       });
     }
 
-    let imageurl = null;
+    // Handle image upload
+    let imageUrl = null;
     if (file) {
+      console.log("Uploading image to Cloudinary...");
       const uploadResult = await uploadImageCloudinary(file.buffer);
-      console.log(uploadResult);
-      imageurl = uploadResult.secure_url;
+      imageUrl = uploadResult.secure_url;
     }
 
+    // Hash password
     const salt = await bcryptjs.genSalt(10);
     const hashedPassword = await bcryptjs.hash(password, salt);
 
+    // Create user
     const newUser = await User.create({
       name,
       email,
       occupation,
       dob,
       password: hashedPassword,
-      imageurl,
+      image: imageUrl,
     });
 
-    return res.status(200).json({
+    // Return response without sensitive data
+    const userResponse = {
+      _id: newUser._id,
+      name: newUser.name,
+      email: newUser.email,
+      occupation: newUser.occupation,
+      dob: newUser.dob,
+      image: newUser.image,
+      createdAt: newUser.createdAt,
+    };
+    console.log(userResponse);
+    return res.status(201).json({
       success: true,
-      error: false,
-      message: "User registered successfully. Please verify your email.",
+      message: "User registered successfully",
+      user: userResponse,
     });
+
   } catch (error) {
-    console.error(error);
+    console.error("Registration error:", error);
     return res.status(500).json({
       success: false,
-      error: true,
-      message: `An error occurred: ${error.message}`,
+      message: error.message || "Internal server error",
     });
   }
 }

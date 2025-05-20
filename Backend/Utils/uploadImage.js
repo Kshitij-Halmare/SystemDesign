@@ -1,22 +1,27 @@
-import cloudinary from 'cloudinary';
+import { v2 as cloudinary } from 'cloudinary';
 
+// Configure with environment variables
 cloudinary.config({
-    cloud_name: process.env.CLOUD_NAME,
-    api_key: process.env.CLOUD_API_KEY,
-    api_secret: process.env.CLOUD_API_SECRET,
+  cloud_name: "doczqznfj",
+  api_key: 653986957328288,
+  api_secret:"YAS8Mq-iEY_0OegAdfOWacCLn68",
 });
 
-export default function uploadImageCloudinary(buffer) {
-    return new Promise((resolve, reject) => {
-        cloudinary.uploader.upload_stream(
-            { resource_type: "auto" },  // Automatically detects file type (image, video, etc.)
-            (error, result) => {
-                if (error) {
-                    reject(error);
-                } else {
-                    resolve(result); // Return the Cloudinary result (which includes the secure URL)
-                }
-            }
-        ).end(buffer); // Pass the buffer to the Cloudinary uploader
+export default async function uploadImageCloudinary(buffer) {
+  try {
+    // Convert buffer to base64 string
+    const base64String = buffer.toString('base64');
+    const dataUri = `data:image/jpeg;base64,${base64String}`;
+
+    const result = await cloudinary.uploader.upload(dataUri, {
+      resource_type: "auto",
+      folder: "user_uploads",
+      quality: "auto:good" // Optimize image quality
     });
+
+    return result;
+  } catch (error) {
+    console.error("Cloudinary upload error:", error);
+    throw new Error("Failed to upload image to Cloudinary");
+  }
 }
