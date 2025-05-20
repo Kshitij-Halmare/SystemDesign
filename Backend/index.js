@@ -16,7 +16,7 @@ if(!MONGODB_URL){
     console.log("url not found");
 }
 mongoose
-  .connect(MONGODB_URL, { useNewUrlParser: true, useUnifiedTopology: true })
+  .connect(MONGODB_URL)
   .then(() => {
     console.log("MongoDB Connected");
     app.listen(PORT, () => {
