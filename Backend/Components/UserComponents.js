@@ -1,6 +1,7 @@
 import User from "../Schemas/UserSchema.js";
 import uploadImageCloudinary from "../Utils/uploadImage.js";
 import bcryptjs from "bcryptjs";
+import { userIdCreation } from "../Utils/UserIdCreation.js";
 
 export async function Register(req, res) {
   const { name, email, password, confirmPassword, occupation, dob } = req.body;
@@ -43,12 +44,14 @@ export async function Register(req, res) {
     const salt = await bcryptjs.genSalt(10);
     const hashedPassword = await bcryptjs.hash(password, salt);
 
+    const createUserId=userIdCreation();
     // Create user
     const newUser = await User.create({
       name,
       email,
       occupation,
       dob,
+      userId:createUserId,
       password: hashedPassword,
       image: imageUrl,
     });
