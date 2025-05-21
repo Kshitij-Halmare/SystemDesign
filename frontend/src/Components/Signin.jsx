@@ -33,6 +33,8 @@ function Signin() {
         toast.error(data.message);
         return;
       }
+      
+      localStorage.setItem("token", data.token);
       toast.success("User signed in successfully");
       navigate("/");
     } catch (error) {

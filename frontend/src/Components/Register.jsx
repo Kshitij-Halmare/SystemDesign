@@ -82,6 +82,7 @@ function Register() {
       }
 
       toast.success('Registration successful!');
+      localStorage.setItem("token",data.token);
       navigate('/signin');
     } catch (error) {
       console.error('Registration error:', error);

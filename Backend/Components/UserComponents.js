@@ -1,6 +1,7 @@
 import User from "../Schemas/UserSchema.js";
 import uploadImageCloudinary from "../Utils/uploadImage.js";
 import bcryptjs from "bcryptjs";
+import jwt from "jsonwebtoken";
 import { userIdCreation } from "../Utils/UserIdCreation.js";
 
 export async function Register(req, res) {
@@ -23,7 +24,7 @@ export async function Register(req, res) {
   }
 
   try {
-    // Check if user exists
+    // Check if user exists - optimized to single query
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(409).json({
@@ -35,7 +36,6 @@ export async function Register(req, res) {
     // Handle image upload
     let imageUrl = null;
     if (file) {
-      console.log("Uploading image to Cloudinary...");
       const uploadResult = await uploadImageCloudinary(file.buffer);
       imageUrl = uploadResult.secure_url;
     }
@@ -44,17 +44,23 @@ export async function Register(req, res) {
     const salt = await bcryptjs.genSalt(10);
     const hashedPassword = await bcryptjs.hash(password, salt);
 
-    const createUserId=userIdCreation();
     // Create user
     const newUser = await User.create({
       name,
       email,
       occupation,
       dob,
-      userId:createUserId,
+      userId: userIdCreation(), // Removed await since it's synchronous
       password: hashedPassword,
       image: imageUrl,
     });
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: newUser._id, email: newUser.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
 
     // Return response without sensitive data
     const userResponse = {
@@ -66,11 +72,12 @@ export async function Register(req, res) {
       image: newUser.image,
       createdAt: newUser.createdAt,
     };
-    console.log(userResponse);
+
     return res.status(201).json({
       success: true,
       message: "User registered successfully",
       user: userResponse,
+      token: token // Send token to client
     });
 
   } catch (error) {
@@ -81,32 +88,51 @@ export async function Register(req, res) {
     });
   }
 }
-export async function Signin(req,res){
-  const {email,password}=req.body;
-  try{
-    const extinguisher=await User.findOne({email:email});
-    if(!extinguisher){
+
+export async function Signin(req, res) {
+  const { email, password } = req.body;
+  
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
       return res.status(400).json({
-        success:false,
-        message:"User Do not exists"
-      })
+        success: false,
+        message: "User does not exist"
+      });
     }
-    const user=await User.findOne({email:email});
-    const check=bcryptjs.compare(password,user.password);
-    if(!check){
+
+    // Fixed: Added await for password comparison
+    const isPasswordValid = await bcryptjs.compare(password, user.password);
+    if (!isPasswordValid) {
       return res.status(400).json({
-        success:false,
-        message:"Password do not match"
-      })
+        success: false,
+        message: "Invalid credentials"
+      });
     }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user._id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
     return res.status(200).json({
-      success:true,
-      message:"User Successfully Logged in"
+      success: true,
+      message: "User successfully logged in",
+      token: token,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        image: user.image
+      }
     });
-  }catch(err){
+
+  } catch (err) {
     return res.status(500).json({
-      success:false,
-      message:err
+      success: false,
+      message: err.message
     });
   }
 }
