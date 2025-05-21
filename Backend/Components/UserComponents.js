@@ -78,3 +78,32 @@ export async function Register(req, res) {
     });
   }
 }
+export async function Signin(req,res){
+  const {email,password}=req.body;
+  try{
+    const extinguisher=await User.findOne({email:email});
+    if(!extinguisher){
+      return res.status(400).json({
+        success:false,
+        message:"User Do not exists"
+      })
+    }
+    const user=await User.findOne({email:email});
+    const check=bcryptjs.compare(password,user.password);
+    if(!check){
+      return res.status(400).json({
+        success:false,
+        message:"Password do not match"
+      })
+    }
+    return res.status(200).json({
+      success:true,
+      message:"User Successfully Logged in"
+    });
+  }catch(err){
+    return res.status(500).json({
+      success:false,
+      message:err
+    });
+  }
+}

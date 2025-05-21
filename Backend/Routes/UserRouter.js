@@ -1,6 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
-import { Register } from "../Components/UserComponents.js";
+import { Register, Signin } from "../Components/UserComponents.js";
 
 const userRouter = Router();
 
@@ -22,5 +22,5 @@ const upload = multer({
 });
 
 userRouter.post("/register", upload.single('image'), Register);
-
+userRouter.post("/signin",Signin);
 export default userRouter;
