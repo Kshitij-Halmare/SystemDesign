@@ -1,27 +1,40 @@
 import mongoose from "mongoose";
 
-const ProblemSchema = new mongoose.Schema({
-  title: {
+const UserSchema = new mongoose.Schema({
+  name: {
     type: String,
     required: [true, "Provide name"],
     trim: true
   },
-  description: {
+  userId:{
+    type:String,
+    required:true
+  },
+  email: {
     type: String,
-    required: [true, "Provide description"],
+    required: [true, "Provide email"],
+    trim: true,
+    unique: true
+  },
+  occupation: {
+    type: String,
+    required: [true, "Provide occupation"],
     trim: true
   },
-  difficulty: {
-    type: String,
-    enum: ['easy', 'medium', 'hard'],
-    required: [true, "Provide difficulty level"]
+  dob: {
+    type: Date,
+    required: [true, "Provide date of birth"]
   },
-  createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: [true, "Problem must be associated with a user"]
+  password: {
+    type: String,
+    required: [true, "Provide password"],
+    trim: true
+  },
+  image: {
+    type: String, // if storing as base64 or URL
+    default: null
   }
 }, { timestamps: true });
 
-const Problem = mongoose.model("Problem", ProblemSchema);
-export default Problem;
+const User = mongoose.model("User", UserSchema);
+export default User;
