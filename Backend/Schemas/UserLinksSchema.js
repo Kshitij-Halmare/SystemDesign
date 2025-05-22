@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import User from "./UserSchema";
 const UserLinkSchema=new mongoose.Schema({
     github:{
         type:String
@@ -8,6 +9,11 @@ const UserLinkSchema=new mongoose.Schema({
     },
     linkedin:{
         type:String
+    },
+    user:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:User,
+        required: [true, "Links must be associated with a user"]
     }
 })
 

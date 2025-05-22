@@ -4,6 +4,7 @@ import Layout from "./Components/Layout"
 import Home from "./Pages/Home"
 import Register from "./Components/Register"
 import Signin from "./Components/Signin"
+import ProblemInput from "./Components/ProblemInput"
 function App() {
 
   return (
@@ -13,6 +14,7 @@ function App() {
         <Route index element={<Home/>}></Route>
         <Route path="register" element={<Register/>}></Route>
         <Route path="Signin" element={<Signin/>}/>
+        <Route path="problemInput" element={<ProblemInput/>}/>
       </Route>
     </Routes>
     </>
