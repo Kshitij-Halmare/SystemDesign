@@ -1,3 +1,4 @@
+/* editorjs.css */
 /* Editor container */
 .editorjs-container {
   background-color: #1a1a1a;
@@ -7,13 +8,6 @@
   min-height: 300px;
   color: #e5e7eb;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.editorjs-container:focus-within {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 1px #3b82f6;
 }
 
 /* Editor content area */
@@ -25,21 +19,23 @@
 .ce-block {
   position: relative;
   padding-left: 3.5rem;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.5rem;
 }
 
 /* Paragraph styling */
 .ce-paragraph {
   color: #e5e7eb;
   font-size: 1rem;
-  line-height: 1.75;
+  line-height: 1;
+  margin: 0.25rem 0;
 }
 
 /* Header styles */
 .ce-header {
   color: #ffffff;
   font-weight: 600;
-  margin: 1.5rem 0 1rem;
+  margin: 0.75rem 0 0.5rem;
+  line-height: 1.2;
 }
 
 h2.ce-header {
@@ -58,43 +54,30 @@ h4.ce-header {
 .cdx-list {
   color: #e5e7eb;
   padding-left: 2rem;
+  line-height: 1;
 }
 
 .cdx-list__item {
-  padding: 0.25rem 0;
-  line-height: 1.5;
+  padding: 0.1rem 0;
 }
 
-/* Side toolbar */
-.ce-toolbar {
-  left: 0.5rem !important;
-  width: 2.5rem !important;
-  background: transparent !important;
+/* Toolbar icons - WHITE COLOR */
+.ce-toolbar__plus,
+.ce-toolbar__settings-btn,
+.ce-toolbar__plus svg,
+.ce-toolbar__settings-btn svg {
+  color: white !important;
+  fill: white !important;
 }
 
-.ce-toolbar__plus {
-  color: #3b82f6 !important;
-  font-size: 1.5rem !important;
-  transition: transform 0.2s ease !important;
-}
-
-.ce-toolbar__plus:hover {
-  transform: scale(1.1) !important;
-}
-
-.ce-toolbar__settings-btn {
-  color: #6b7280 !important;
-  transition: color 0.2s ease !important;
-}
-
+.ce-toolbar__plus:hover,
 .ce-toolbar__settings-btn:hover {
   color: #3b82f6 !important;
 }
 
-/* Placeholder styling */
-.ce-paragraph[data-placeholder]:empty::before {
-  color: #6b7280;
-  font-style: normal;
+.ce-toolbar__plus:hover svg,
+.ce-toolbar__settings-btn:hover svg {
+  fill: #3b82f6 !important;
 }
 
 /* Focus states */
