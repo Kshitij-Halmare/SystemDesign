@@ -5,7 +5,7 @@ import List from '@editorjs/list';
 import Paragraph from '@editorjs/paragraph';
 import { FaTag, FaListUl, FaLightbulb } from 'react-icons/fa';
 import './editorjs.css';
-
+                    
 function ProblemInput() {
     const [formData, setFormData] = useState({
         title: '',
@@ -93,21 +93,22 @@ function ProblemInput() {
             <h1 className="text-2xl font-semibold py-6">Add Problem</h1>
             <form onSubmit={handleSubmit} className="space-y-6">
 
-                {/* Title with icon */}
                 <div className="space-y-2 relative">
                     <label htmlFor="title" className="block font-medium text-gray-300">
                         Title
                     </label>
-                    <FaTag className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white pointer-events-none" />
-                    <input
-                        type="text"
-                        id="title"
-                        value={formData.title}
-                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                        className="w-full pl-10 px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-                        placeholder="Problem title"
-                        required
-                    />
+                    <div className='flex items-center '>
+                        <FaTag className="text-gray-100 absolute left-4" />
+                        <input
+                            type="text"
+                            id="title"
+                            value={formData.title}
+                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                            className="w-full pl-10 px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                            placeholder="Problem title"
+                            required
+                        />
+                    </div>
                 </div>
 
                 {/* Description - no icon because it’s EditorJS */}
@@ -126,34 +127,38 @@ function ProblemInput() {
                     <label htmlFor="difficulty" className="block font-medium text-gray-300">
                         Difficulty
                     </label>
-                    <FaListUl className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white pointer-events-none" />
-                    <select
-                        id="difficulty"
-                        value={formData.difficulty}
-                        onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}
-                        className="w-full pl-10 px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-                        required
-                    >
-                        <option value="easy">Easy</option>
-                        <option value="medium">Medium</option>
-                        <option value="hard">Hard</option>
-                    </select>
+                    <div className='flex itesm-center '>
+                        <FaListUl className="text-white absolute left-4 my-4" />
+                        <select
+                            id="difficulty"
+                            value={formData.difficulty}
+                            onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}
+                            className="w-full pl-10 px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                            required
+                        >
+                            <option value="easy">Easy</option>
+                            <option value="medium">Medium</option>
+                            <option value="hard">Hard</option>
+                        </select>
+                    </div>
                 </div>
 
                 {/* Hints with icon */}
                 <div className="space-y-2 relative">
                     <label htmlFor="hints" className="block font-medium text-gray-300">
-                        Hints (comma separated)
+                        Hints
                     </label>
-                    <FaLightbulb className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white pointer-events-none" />
-                    <input
-                        type="text"
-                        id="hints"
-                        value={formData.hints}
-                        onChange={(e) => setFormData({ ...formData, hints: e.target.value })}
-                        className="w-full pl-10 px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-                        placeholder="Hint 1, Hint 2, Hint 3"
-                    />
+                    <div className='flex items-center'>
+                        <FaLightbulb className="absolute left-4  text-white " />
+                        <input
+                            type="text"
+                            id="hints"
+                            value={formData.hints}
+                            onChange={(e) => setFormData({ ...formData, hints: e.target.value })}
+                            className="w-full pl-10 px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                            placeholder="Hint"
+                        />
+                    </div>
                 </div>
 
                 <button
