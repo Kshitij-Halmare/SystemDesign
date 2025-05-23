@@ -5,7 +5,7 @@ import List from '@editorjs/list';
 import Paragraph from '@editorjs/paragraph';
 import { FaTag, FaListUl, FaLightbulb } from 'react-icons/fa';
 import './editorjs.css';
-                    
+
 function ProblemInput() {
     const [formData, setFormData] = useState({
         title: '',
@@ -72,15 +72,21 @@ function ProblemInput() {
         }
 
         return () => {
-            if (editorRef.current) {
-                editorRef.current.destroy()
-                    .then(() => {
+            if (editorRef.current && typeof editorRef.current.destroy === 'function') {
+                const maybePromise = editorRef.current.destroy();
+                if (maybePromise && typeof maybePromise.then === 'function') {
+                    maybePromise.then(() => {
                         editorRef.current = null;
                         isInitialized.current = false;
-                    })
-                    .catch(error => console.error('Editor cleanup error:', error));
+                    }).catch(error => console.error('Editor cleanup error:', error));
+                } else {
+                    // fallback if destroy() doesn't return a promise
+                    editorRef.current = null;
+                    isInitialized.current = false;
+                }
             }
         };
+
     }, []);
 
     const handleSubmit = (e) => {

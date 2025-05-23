@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import defaultImage from '../assets/21-avatar.gif';
 import FadeInWrapper from '../Animation/FadeinWrapper';
-
+import { useAuth } from '../../Authentication/Authentication';
 function Register() {
+  const {login}=useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -82,7 +83,7 @@ function Register() {
       }
 
       toast.success('Registration successful!');
-      localStorage.setItem("token",data.token);
+      login(data.token);
       navigate('/signin');
     } catch (error) {
       console.error('Registration error:', error);

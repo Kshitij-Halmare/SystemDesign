@@ -3,8 +3,9 @@ import FadeInWrapper from '../Animation/FadeinWrapper';
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-
+import { useAuth } from '../../Authentication/Authentication';
 function Signin() {
+  const {login}=useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -33,8 +34,7 @@ function Signin() {
         toast.error(data.message);
         return;
       }
-      
-      localStorage.setItem("token", data.token);
+      login(data.token);
       toast.success("User signed in successfully");
       navigate("/");
     } catch (error) {
