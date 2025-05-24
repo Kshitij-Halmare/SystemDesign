@@ -3,6 +3,7 @@ import cors from "cors"
 import dotenv from "dotenv"
 import mongoose from "mongoose"
 import userRouter from "./Routes/UserRouter.js";
+import ProblemRouter from "./Routes/ProblemRouter.js"
 dotenv.config();
 
 const app=express();
@@ -10,6 +11,7 @@ app.use(cors());
 app.use(express.json());
 const PORT=process.env.PORT || 8000;
 app.use("/api/user",userRouter);
+app.use("/api/problem",ProblemRouter);
 // app.listen(PORT,()=>{
 //     console.log(`server listening on port ${PORT}`);
 // })

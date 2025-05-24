@@ -5,13 +5,15 @@ import List from '@editorjs/list';
 import Paragraph from '@editorjs/paragraph';
 import { FaTag, FaListUl, FaLightbulb } from 'react-icons/fa';
 import './editorjs.css';
-
+import { useAuth } from '../../Authentication/Authentication';
 function ProblemInput() {
+    const { user } = useAuth();
     const [formData, setFormData] = useState({
         title: '',
         description: '',
         difficulty: 'medium',
-        hints: ''
+        hints: '',
+        userId: ''
     });
 
     const editorRef = useRef(null);
@@ -71,6 +73,56 @@ function ProblemInput() {
             initializeEditor();
         }
 
+        const handleSubmit = async (e) => {
+            e.preventDefault();
+
+            if (!user || !user._id) {
+                alert("User not authenticated");
+                return;
+            }
+
+            const payload = {
+                ...formData,
+                userId: user._id, // assuming user object has _id
+            };
+
+            try {
+                const response = await fetch('/api/problem/problemInput', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload),
+                });
+
+                if (!response.ok) {
+                    // If backend returns an error status code
+                    const errorData = await response.json();
+                    alert("Error: " + (errorData.message || "Failed to submit problem"));
+                    return;
+                }
+
+                const data = await response.json();
+                alert("Problem submitted successfully!");
+
+                // Optional: Reset form after success
+                setFormData({
+                    title: '',
+                    description: '',
+                    difficulty: 'medium',
+                    hints: '',
+                    userId: '',
+                });
+
+                // Optional: clear EditorJS content manually here if needed
+
+            } catch (error) {
+                console.error("Submit error:", error);
+                alert("Failed to submit problem. Please try again.");
+            }
+        };
+
+
         return () => {
             if (editorRef.current && typeof editorRef.current.destroy === 'function') {
                 const maybePromise = editorRef.current.destroy();
@@ -91,7 +143,7 @@ function ProblemInput() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        console.log('Form submitted:', formData);
+        console.log('Form submitted:', user);
     };
 
     return (
@@ -169,6 +221,7 @@ function ProblemInput() {
 
                 <button
                     type="submit"
+                    onClick={handleSubmit}
                     className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium transition-colors w-full sm:w-auto"
                 >
                     Submit Problem
