@@ -1,50 +1,73 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useContext } from 'react';
 import { jwtDecode } from 'jwt-decode';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); 
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const location = useLocation();
+
   useEffect(() => {
     const token = localStorage.getItem('blog_user_token');
+
     if (token) {
       try {
         const decoded = jwtDecode(token);
-        console.log(decoded);
-        setUser(decoded);  
+        setUser(decoded);
       } catch (error) {
         console.error('Invalid token', error);
+        localStorage.removeItem('blog_user_token');
+        setUser(null);
+
+        if (!['/signin', '/register'].includes(location.pathname)) {
+          toast.error('Session expired. Please sign in again.');
+          navigate('/signin');
+        }
+      }
+    } else {
+      setUser(null);
+
+      if (!['/signin', '/register'].includes(location.pathname)) {
+        toast.error('Please sign in or register');
+        navigate('/signin');
       }
     }
-    setLoading(false); 
-  }, []);
+
+    setLoading(false);
+  }, [navigate, location]);
 
   const login = (token) => {
-    const decoded = jwtDecode(token);
-    console.log(decoded);
-    setUser(decoded);
-    localStorage.setItem('blog_user_token', token); // Store the token in localStorage
+    try {
+      const decoded = jwtDecode(token);
+      setUser(decoded);
+      localStorage.setItem('blog_user_token', token);
+    } catch (error) {
+      console.error('Login failed: invalid token');
+      toast.error('Login failed');
+    }
   };
 
   const signOut = () => {
     setUser(null);
-    localStorage.removeItem('blog_user_token'); 
-    
+    localStorage.removeItem('blog_user_token');
+    navigate('/signin');
   };
 
   if (loading) {
-    return <div>Loading...</div>; // Render loading indicator while checking the token
+    return <div className="text-center text-white mt-10">Loading...</div>;
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, signOut,setUser }}>
+    <AuthContext.Provider value={{ user, login, signOut, setUser }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
 export const useAuth = () => {
-  return React.useContext(AuthContext);
+  return useContext(AuthContext);
 };

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import defaultImage from '../assets/21-avatar.gif';
 import FadeInWrapper from '../Animation/FadeinWrapper';
-import { useAuth } from '../../Authentication/Authentication';
+import { useAuth } from '../../Authentication/Authentication.jsx';
 function Register() {
   const {login}=useAuth();
   const [formData, setFormData] = useState({
