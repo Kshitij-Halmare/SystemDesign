@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import { Menu, X, Github, LogIn, UserPlus, Zap } from 'lucide-react';
 
 function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [activeLink, setActiveLink] = useState('/');
+  const location = useLocation();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -15,32 +16,33 @@ function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location]);
+
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
-  const handleLinkClick = (path) => {
-    setActiveLink(path);
-    setIsMobileMenuOpen(false);
-  };
-
   const NavItem = ({ to, children, mobile = false }) => {
-    const isActive = activeLink === to;
     const baseClasses = mobile 
       ? "block px-4 py-3 rounded-lg text-sm font-medium transition-all duration-300"
       : "px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300";
-    
-    const activeClasses = isActive 
-      ? "bg-gradient-to-r from-yellow-400/20 to-orange-500/20 text-yellow-400 border border-yellow-400/30" 
-      : "text-gray-300 hover:text-white hover:bg-white/10";
 
     return (
-      <button
-        onClick={() => handleLinkClick(to)}
-        className={`${baseClasses} ${activeClasses}`}
+      <NavLink
+        to={to}
+        className={({ isActive }) =>
+          `${baseClasses} ${
+            isActive
+              ? "bg-gradient-to-r from-yellow-400/20 to-orange-500/20 text-yellow-400 border border-yellow-400/30"
+              : "text-gray-300 hover:text-white hover:bg-white/10"
+          }`
+        }
       >
         {children}
-      </button>
+      </NavLink>
     );
   };
 
@@ -56,7 +58,7 @@ function Header() {
             
             {/* Left: Logo and Nav Links */}
             <div className='flex items-center gap-8'>
-              <button onClick={() => handleLinkClick('/')} className='flex items-center gap-3 group'>
+              <Link to="/" className='flex items-center gap-3 group'>
                 <div className="relative">
                   <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg blur opacity-75 group-hover:opacity-100 transition-opacity"></div>
                   <div className="relative bg-gradient-to-r from-yellow-400 to-orange-500 p-2 rounded-lg">
@@ -66,7 +68,7 @@ function Header() {
                 <span className='font-bold text-xl bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent group-hover:from-yellow-400 group-hover:to-orange-400 transition-all duration-300'>
                   SystemDesign Pro
                 </span>
-              </button>
+              </Link>
 
               {/* Desktop Navigation */}
               <nav className='hidden lg:flex gap-1'>
@@ -93,35 +95,40 @@ function Header() {
 
               {/* Desktop Auth Links */}
               <div className='hidden lg:flex items-center gap-2'>
-                <button 
-                  onClick={() => handleLinkClick('/signin')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-                    activeLink === '/signin'
-                      ? "bg-white/10 text-white" 
-                      : "text-gray-300 hover:text-white hover:bg-white/5"
-                  }`}
+                <NavLink 
+                  to="/signin"
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                      isActive
+                        ? "bg-white/10 text-white" 
+                        : "text-gray-300 hover:text-white hover:bg-white/5"
+                    }`
+                  }
                 >
                   <LogIn className="w-4 h-4" />
                   Sign In
-                </button>
+                </NavLink>
                 
-                <button 
-                  onClick={() => handleLinkClick('/register')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-                    activeLink === '/register'
-                      ? "bg-gradient-to-r from-yellow-400 to-orange-500 text-black" 
-                      : "bg-gradient-to-r from-yellow-400/90 to-orange-500/90 text-black hover:from-yellow-400 hover:to-orange-500 shadow-lg shadow-yellow-500/25"
-                  }`}
+                <NavLink 
+                  to="/register"
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                      isActive
+                        ? "bg-gradient-to-r from-yellow-400 to-orange-500 text-black" 
+                        : "bg-gradient-to-r from-yellow-400/90 to-orange-500/90 text-black hover:from-yellow-400 hover:to-orange-500 shadow-lg shadow-yellow-500/25"
+                    }`
+                  }
                 >
                   <UserPlus className="w-4 h-4" />
                   Get Started
-                </button>
+                </NavLink>
               </div>
 
               {/* Mobile Menu Button */}
               <button
                 onClick={toggleMobileMenu}
                 className="lg:hidden p-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-300"
+                aria-label="Toggle mobile menu"
               >
                 {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
@@ -143,26 +150,27 @@ function Header() {
               <NavItem to="/templates" mobile>Templates</NavItem>
               
               <div className="pt-4 border-t border-white/10 space-y-2">
-                <button 
-                  onClick={() => handleLinkClick('/signin')}
+                <NavLink 
+                  to="/signin"
                   className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-300 w-full text-left"
                 >
                   <LogIn className="w-4 h-4" />
                   Sign In
-                </button>
-                <button 
-                  onClick={() => handleLinkClick('/register')}
+                </NavLink>
+                <NavLink 
+                  to="/register"
                   className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium bg-gradient-to-r from-yellow-400 to-orange-500 text-black hover:from-yellow-300 hover:to-orange-400 transition-all duration-300 w-full text-left"
                 >
                   <UserPlus className="w-4 h-4" />
                   Get Started
-                </button>
+                </NavLink>
               </div>
             </nav>
           </div>
         </div>
       </header>
 
+      {/* Spacer to prevent content from going under fixed header */}
       <div className={`transition-all duration-300 ${isScrolled ? 'h-16' : 'h-20'}`}></div>
     </>
   );

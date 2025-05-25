@@ -7,6 +7,7 @@ import Signin from "./Pages/Signin.jsx";
 import ProblemInput from "./Pages/ProblemInput.jsx";
 import { AuthProvider } from "../Authentication/Authentication";
 import Problems from "./Pages/Problems.jsx";
+import SystemDesignSolvePage from "./Pages/SystemdesignSolvePage.jsx";
 
 function App() {
   return (
@@ -17,6 +18,8 @@ function App() {
           <Route path="Signin" element={<Signin />} />
           <Route path="problemInput" element={<ProblemInput />} />
           <Route path="problems" element={<Problems/>}/>
+          <Route path="problemsSolve" element={<SystemDesignSolvePage/>}/>
+
         </Route>
       </Routes>
   );
