@@ -6,13 +6,16 @@ import App from './App.jsx'
 import { BrowserRouter } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from '../Authentication/Authentication.jsx'
+import { ProblemStoreProvider } from './Components/ProblemInputStore.jsx'
 
 createRoot(document.getElementById('root')).render(
   // <StrictMode>
-  <BrowserRouter> {/* ✅ Router provides context to useNavigate */}
-    <AuthProvider> {/* ✅ Now useNavigate will work inside AuthProvider */}
+  <BrowserRouter> 
+    <AuthProvider>
+      <ProblemStoreProvider> 
       <App />
       <Toaster position="top-center" reverseOrder={false} />
+      </ProblemStoreProvider>
     </AuthProvider>
   </BrowserRouter>
   // </StrictMode>

@@ -16,7 +16,7 @@ const ProblemSchema = new mongoose.Schema({
         maxlength: 200
     },
     description: {
-        type: mongoose.Schema.Types.Mixed, // EditorJS output (JSON)
+        type: mongoose.Schema.Types.Mixed,
         required: [true, "Provide problem description"]
     },
     difficulty: {
@@ -42,10 +42,6 @@ const ProblemSchema = new mongoose.Schema({
         ref: 'User',
         required: [true, "Problem must be associated with a user"]
     },
-    isPublic: {
-        type: Boolean,
-        default: true
-    },
     views: {
         type: Number,
         default: 0
@@ -62,7 +58,6 @@ const ProblemSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Auto-increment plugin for problemId
 ProblemSchema.plugin(AutoIncrement, { inc_field: 'problemId' });
 
 const Problem = mongoose.model("Problem", ProblemSchema);

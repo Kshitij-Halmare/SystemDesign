@@ -2,9 +2,9 @@ import React from "react";
 import { Route, Routes } from "react-router-dom";
 import Layout from "./Components/Layout";
 import Home from "./Pages/Home";
-import Register from "./Components/Register";
-import Signin from "./Components/Signin";
-import ProblemInput from "./Components/ProblemInput";
+import Register from "./Pages/Register.jsx";
+import Signin from "./Pages/Signin.jsx";
+import ProblemInput from "./Pages/ProblemInput.jsx";
 import { AuthProvider } from "../Authentication/Authentication";
 
 function App() {
