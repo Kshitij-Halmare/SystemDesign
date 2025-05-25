@@ -8,12 +8,12 @@ import './editorjs.css';
 import { useAuth } from '../../Authentication/Authentication';
 import { useProblemStore } from '../Components/ProblemInputStore';
 import toast from 'react-hot-toast';
-import TagsUi from '../Components/TagsUi';
+
 
 function ProblemInput() {
     const { user, token } = useAuth();
     const { tags, setTags, images, setImages, hints, setHints } = useProblemStore();
-
+    const [isSubmitting,setIsSubmitting]=useState(false);
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -165,7 +165,7 @@ function ProblemInput() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
+        setIsSubmitting(true);
         if (!token || !user) {
             toast.error("User not authenticated");
             return;
@@ -197,7 +197,6 @@ function ProblemInput() {
                 method: 'POST',
                 headers: {
                     Authorization: `Bearer ${token}`,
-                    // Don't set Content-Type header, let browser set it with boundary for FormData
                 },
                 body: formDataToSend,
             });
@@ -242,6 +241,8 @@ function ProblemInput() {
         } catch (error) {
             console.error("Submit error:", error);
             toast.error("Failed to submit problem. Please try again.");
+        } finally{
+            setIsSubmitting(false);
         }
     };
 
@@ -426,7 +427,7 @@ function ProblemInput() {
                     type="submit"
                     className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium transition-colors w-full sm:w-auto"
                 >
-                    Submit Problem
+                    {isSubmitting?`Submitting Problem`:`Submit Problem`}
                 </button>
             </form>
         </div>
