@@ -11,12 +11,13 @@ const ProblemSchema = new mongoose.Schema({
     },
     title: {
         type: String,
-        required: [true, "Provide name"],
-        trim: true
+        required: [true, "Provide title"],
+        trim: true,
+        maxlength: 200
     },
     description: {
-        type: mongoose.Schema.Types.Mixed,
-        required: true
+        type: mongoose.Schema.Types.Mixed, // EditorJS output (JSON)
+        required: [true, "Provide problem description"]
     },
     difficulty: {
         type: String,
@@ -24,15 +25,44 @@ const ProblemSchema = new mongoose.Schema({
         required: [true, "Provide difficulty level"]
     },
     hints: {
-        type: String,
+        type: [String], // supports multiple hints
+        default: []
+    },
+    tags: {
+        type: [String], // optional tags for filtering
+        default: [],
+        index: true
+    },
+    images: {
+        type: [String], // optional image URLs
+        default: []
     },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: [true, "Problem must be associated with a user"]
+    },
+    isPublic: {
+        type: Boolean,
+        default: true
+    },
+    views: {
+        type: Number,
+        default: 0
+    },
+    likes: {
+        type: Number,
+        default: 0
+    },
+    reviewed: {
+        type: Boolean,
+        default: false
     }
-}, { timestamps: true });
+}, {
+    timestamps: true
+});
 
+// Auto-increment plugin for problemId
 ProblemSchema.plugin(AutoIncrement, { inc_field: 'problemId' });
 
 const Problem = mongoose.model("Problem", ProblemSchema);

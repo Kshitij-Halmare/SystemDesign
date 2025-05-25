@@ -7,6 +7,7 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [token,setToken]=useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
@@ -16,6 +17,7 @@ export const AuthProvider = ({ children }) => {
 
     if (token) {
       try {
+        setToken(token);
         const decoded = jwtDecode(token);
         setUser(decoded);
       } catch (error) {
@@ -44,6 +46,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const decoded = jwtDecode(token);
       setUser(decoded);
+      console.log(decoded);
       localStorage.setItem('blog_user_token', token);
     } catch (error) {
       console.error('Login failed: invalid token');
@@ -62,7 +65,7 @@ export const AuthProvider = ({ children }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, signOut, setUser }}>
+    <AuthContext.Provider value={{ user, login, signOut, setUser, token }}>
       {children}
     </AuthContext.Provider>
   );

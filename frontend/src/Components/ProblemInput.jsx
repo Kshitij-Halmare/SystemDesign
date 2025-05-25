@@ -7,7 +7,7 @@ import { FaTag, FaListUl, FaLightbulb } from 'react-icons/fa';
 import './editorjs.css';
 import { useAuth } from '../../Authentication/Authentication';
 function ProblemInput() {
-    const { user } = useAuth();
+    const { user, token } = useAuth();
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -72,57 +72,6 @@ function ProblemInput() {
 
             initializeEditor();
         }
-
-        const handleSubmit = async (e) => {
-            e.preventDefault();
-
-            if (!user || !user._id) {
-                alert("User not authenticated");
-                return;
-            }
-
-            const payload = {
-                ...formData,
-                userId: user._id, // assuming user object has _id
-            };
-
-            try {
-                const response = await fetch('/api/problem/problemInput', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(payload),
-                });
-
-                if (!response.ok) {
-                    // If backend returns an error status code
-                    const errorData = await response.json();
-                    alert("Error: " + (errorData.message || "Failed to submit problem"));
-                    return;
-                }
-
-                const data = await response.json();
-                alert("Problem submitted successfully!");
-
-                // Optional: Reset form after success
-                setFormData({
-                    title: '',
-                    description: '',
-                    difficulty: 'medium',
-                    hints: '',
-                    userId: '',
-                });
-
-                // Optional: clear EditorJS content manually here if needed
-
-            } catch (error) {
-                console.error("Submit error:", error);
-                alert("Failed to submit problem. Please try again.");
-            }
-        };
-
-
         return () => {
             if (editorRef.current && typeof editorRef.current.destroy === 'function') {
                 const maybePromise = editorRef.current.destroy();
@@ -132,7 +81,6 @@ function ProblemInput() {
                         isInitialized.current = false;
                     }).catch(error => console.error('Editor cleanup error:', error));
                 } else {
-                    // fallback if destroy() doesn't return a promise
                     editorRef.current = null;
                     isInitialized.current = false;
                 }
@@ -141,10 +89,62 @@ function ProblemInput() {
 
     }, []);
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        console.log('Form submitted:', user);
+
+
+    const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!token || !user) {
+        alert("User not authenticated");
+        return;
+    }
+
+    const payload = {
+        ...formData,
+        userId: user.userId, 
     };
+
+    try {
+        const response = await fetch(`${import.meta.env.VITE_SERVER_DOMAIN}/api/problem/problemInput`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            alert("Error: " + (errorData.message || "Failed to submit problem"));
+            return;
+        }
+
+        alert("Problem submitted successfully!");
+
+        setFormData({
+            title: '',
+            description: '',
+            difficulty: 'medium',
+            hints: '',
+        });
+
+        // Clear EditorJS manually
+        if (editorRef.current?.clear) {
+            editorRef.current.clear();
+        }
+
+    } catch (error) {
+        console.error("Submit error:", error);
+        alert("Failed to submit problem. Please try again.");
+    }
+};
+
+
+    // const handleSubmit = (e) => {
+    //     e.preventDefault();
+    //     console.log('Form submitted:', user);
+    // };
 
     return (
         <div className="text-white px-6 py-5 max-w-4xl mx-auto">
