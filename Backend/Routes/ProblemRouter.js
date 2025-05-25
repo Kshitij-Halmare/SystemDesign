@@ -1,6 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
-import { ProblemInput } from "../Components/ProblemComponents.js";
+import { getProblem, ProblemInput } from "../Components/ProblemComponents.js";
 import { verifyToken } from "../Middleware/auth.js";
 
 const ProblemRouter = Router();
@@ -72,6 +72,8 @@ ProblemRouter.post(
   handleMulterError,
   ProblemInput
 );
+
+ProblemRouter.get("/getProblem",getProblem);
 
 export default ProblemRouter;
 

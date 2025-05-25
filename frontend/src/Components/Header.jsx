@@ -16,9 +16,9 @@ function Header() {
 
           <nav className='flex gap-4 text-sm'>
             <NavLink 
-              to="/docs" 
+              to="/problems" 
               className={({ isActive }) => isActive ? "text-gray-400" : "hover:text-white"}>
-              Docs
+              Problems
             </NavLink>
             <NavLink 
               to="/components" 

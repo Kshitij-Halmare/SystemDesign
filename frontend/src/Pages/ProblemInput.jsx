@@ -13,7 +13,7 @@ import toast from 'react-hot-toast';
 function ProblemInput() {
     const { user, token } = useAuth();
     const { tags, setTags, images, setImages, hints, setHints } = useProblemStore();
-    const [isSubmitting,setIsSubmitting]=useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -66,12 +66,12 @@ function ProblemInput() {
 
         return () => {
             if (editorRef.current?.destroy) {
-                editorRef.current.destroy().then(() => {
-                    editorRef.current = null;
-                    isInitialized.current = false;
-                }).catch(console.error);
+                editorRef.current.destroy(); 
+                editorRef.current = null;
+                isInitialized.current = false;
             }
         };
+
     }, []);
 
     const handleInputTags = (e) => {
@@ -114,7 +114,7 @@ function ProblemInput() {
 
     const handleImageUpload = (e) => {
         const files = Array.from(e.target.files);
-        
+
         if (images.length + files.length > 5) {
             toast.error("Only 5 images are allowed");
             return;
@@ -157,7 +157,7 @@ function ProblemInput() {
         if (imageToRemove.url) {
             URL.revokeObjectURL(imageToRemove.url);
         }
-        
+
         const updatedImages = images.filter(image => image.id !== imageToRemove.id);
         setImages(updatedImages);
         setFormData(prev => ({ ...prev, images: updatedImages }));
@@ -171,9 +171,13 @@ function ProblemInput() {
             return;
         }
 
+        if (!formData.title || !formData.description || !formData.difficulty || !formData.tags) {
+            toast.error("All Feilds are required");
+            return;
+        }
         // Create FormData for file upload
         const formDataToSend = new FormData();
-        
+
         // Add basic form fields
         formDataToSend.append('title', formData.title);
         formDataToSend.append('description', formData.description);
@@ -241,7 +245,7 @@ function ProblemInput() {
         } catch (error) {
             console.error("Submit error:", error);
             toast.error("Failed to submit problem. Please try again.");
-        } finally{
+        } finally {
             setIsSubmitting(false);
         }
     };
@@ -309,7 +313,7 @@ function ProblemInput() {
                         />
                     </div>
                     <p className='text-gray-500 font-semibold px-3'>{`Hints added: ${hints.length}/3`}</p>
-                    
+
                     {/* Display added hints */}
                     {hints.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-2">
@@ -347,7 +351,7 @@ function ProblemInput() {
                     </div>
                     <p className='text-gray-500 font-semibold px-3'>{`Images added: ${images.length}/5`}</p>
                     <p className='text-gray-400 text-sm px-3'>Supported formats: JPG, PNG, GIF, WEBP (Max 5MB each)</p>
-                    
+
                     {/* Display added images with previews */}
                     {images.length > 0 && (
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
@@ -399,7 +403,7 @@ function ProblemInput() {
                         />
                     </div>
                     <p className='text-gray-500 font-semibold px-3'>{`Tags added: ${tags.length}/5`}</p>
-                            
+
 
                     {/* Fallback display if TagsUi is not available */}
                     {tags.length > 0 && (
@@ -427,7 +431,7 @@ function ProblemInput() {
                     type="submit"
                     className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium transition-colors w-full sm:w-auto"
                 >
-                    {isSubmitting?`Submitting Problem`:`Submit Problem`}
+                    {isSubmitting ? `Submitting Problem` : `Submit Problem`}
                 </button>
             </form>
         </div>

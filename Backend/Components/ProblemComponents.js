@@ -108,7 +108,6 @@ export const ProblemInput = async (req, res) => {
     });
     
     console.log(problem);
-    // Save to database
     await problem.save();
     
     console.log('Problem created successfully:', problem._id);
@@ -163,6 +162,23 @@ export const cleanupImages = async (imageUrls) => {
   });
   
   await Promise.allSettled(deletePromises);
+};
+
+export const getProblem = async (req, res) => {
+  try {
+    const problems = await Problem.find();
+    console.log(problems);
+    return res.status(200).json({
+      message: "Successfully retrieved problems",
+      data:problems, // match frontend expectations
+      success: true
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message || "Server error",
+      success: false
+    });
+  }
 };
 
 export default ProblemRouter;

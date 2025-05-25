@@ -6,6 +6,7 @@ import Register from "./Pages/Register.jsx";
 import Signin from "./Pages/Signin.jsx";
 import ProblemInput from "./Pages/ProblemInput.jsx";
 import { AuthProvider } from "../Authentication/Authentication";
+import Problems from "./Pages/Problems.jsx";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Route path="register" element={<Register />} />
           <Route path="Signin" element={<Signin />} />
           <Route path="problemInput" element={<ProblemInput />} />
+          <Route path="problems" element={<Problems/>}/>
         </Route>
       </Routes>
   );

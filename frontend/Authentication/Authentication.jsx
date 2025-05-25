@@ -24,11 +24,6 @@ export const AuthProvider = ({ children }) => {
         console.error('Invalid token', error);
         localStorage.removeItem('blog_user_token');
         setUser(null);
-
-        if (!['/signin', '/register'].includes(location.pathname)) {
-          toast.error('Session expired. Please sign in again.');
-          navigate('/signin');
-        }
       }
     } else {
       setUser(null);
