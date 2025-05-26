@@ -3,7 +3,7 @@ import { Github, ArrowRight, Play, Star, Users, BookOpen } from 'lucide-react';
 
 function Home() {
   return (
-    <div className="relative min-h-screen flex flex-col items-center pt-20 px-4 sm:px-6 lg:px-8 overflow-hidden bg-gradient-to-br from-gray-900 via-black to-gray-900">
+    <div className="relative min-h-screen flex flex-col items-center pt-20 px-4 sm:px-6 lg:px-8 overflow-hidden ">
 
       {/* Animated background particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">

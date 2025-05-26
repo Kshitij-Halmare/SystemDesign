@@ -181,4 +181,23 @@ export const getProblem = async (req, res) => {
   }
 };
 
+export const getSpecificProblem = async (req, res) => {
+  try {
+    const {problemId}=req.body;
+    console.log(problemId);
+    const problems = await Problem.find({problemId});
+    console.log(problems);
+    return res.status(200).json({
+      message: "Successfully retrieved problems",
+      data:problems, // match frontend expectations
+      success: true
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message || "Server error",
+      success: false
+    });
+  }
+};
+
 export default ProblemRouter;

@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Search, Code, Clock, Star, ArrowRight, Tag } from 'lucide-react';
-
+import { useNavigate } from 'react-router-dom';
 function Problems() {
     const [problems, setProblems] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedDifficulty, setSelectedDifficulty] = useState('All');
-
+    const navigate=useNavigate();
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -81,6 +81,11 @@ function Problems() {
         ];
         return colors[index % colors.length];
     };
+
+    const handleClick=(index)=>{
+        const problemid=problems[index].problemId;
+        navigate(`/problemSolve/${problemid}`)
+    }
 
     const filteredProblems = problems.filter(problem => {
         const matchesSearch = problem.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -171,6 +176,7 @@ function Problems() {
                     {filteredProblems.map((problem, index) => (
                         <div 
                             key={index} 
+                            onClick={()=>handleClick(index)}
                             className="group bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-sm border border-gray-700/30 rounded-2xl p-6 hover:border-blue-500/30 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 hover:-translate-y-1"
                         >
                             <div className="flex flex-col lg:flex-row lg:items-start gap-6">
@@ -205,9 +211,9 @@ function Problems() {
                                     </div>
 
                                     {/* Description */}
-                                    <div className="mb-4">
+                                    {/* <div className="mb-4">
                                         {renderDescription(problem.description)}
-                                    </div>
+                                    </div> */}
 
                                     {/* Tags */}
                                     {problem.tags && problem.tags.length > 0 && (
