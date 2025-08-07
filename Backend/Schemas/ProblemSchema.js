@@ -59,12 +59,23 @@ const problemSchema = new mongoose.Schema({
             required: true
         }
     }],
+    // Solution-related fields
+    solutionWorkspace: {
+        type: mongoose.Schema.Types.Mixed, // JSON data for nodes, edges, notes
+        default: null
+    },
+    writtenSolution: {
+        type: String,
+        trim: true,
+        maxlength: [10000, 'Written solution cannot exceed 10000 characters'],
+        default: ''
+    },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User', // Assuming you have a User model
         required: [true, 'Creator is required']
     },
-    // Additional fields you might want
+    // Additional fields from your frontend
     status: {
         type: String,
         enum: ['draft', 'published', 'archived'],
@@ -78,9 +89,13 @@ const problemSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    reviewed: {
+        type: Boolean,
+        default: false
+    },
     solutions: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Solution' // If you have solutions
+        ref: 'Solution' // If you have separate solutions collection
     }]
 }, {
     timestamps: true, // Adds createdAt and updatedAt automatically
@@ -103,11 +118,24 @@ problemSchema.virtual('tagCount').get(function () {
     return this.tags ? this.tags.length : 0;
 });
 
+// Virtual to check if solution is provided
+problemSchema.virtual('hasSolution').get(function () {
+    const hasWorkspace = this.solutionWorkspace && 
+        typeof this.solutionWorkspace === 'object' && 
+        this.solutionWorkspace.nodes && 
+        this.solutionWorkspace.nodes.length > 0;
+    
+    const hasWrittenSolution = this.writtenSolution && this.writtenSolution.trim().length > 0;
+    
+    return hasWorkspace || hasWrittenSolution;
+});
+
 // Index for better query performance
 problemSchema.index({ difficulty: 1 });
 problemSchema.index({ tags: 1 });
 problemSchema.index({ createdBy: 1 });
 problemSchema.index({ createdAt: -1 });
+problemSchema.index({ reviewed: 1 });
 
 // Pre-save middleware for validation
 problemSchema.pre('save', function (next) {
@@ -124,6 +152,27 @@ problemSchema.pre('save', function (next) {
     // Validate images array length
     if (this.images && this.images.length > 5) {
         return next(new Error('Maximum 5 images allowed'));
+    }
+
+    // Parse solutionWorkspace if it's a string
+    if (this.solutionWorkspace && typeof this.solutionWorkspace === 'string') {
+        try {
+            this.solutionWorkspace = JSON.parse(this.solutionWorkspace);
+        } catch (error) {
+            return next(new Error('Invalid solution workspace format'));
+        }
+    }
+
+    // Ensure at least one form of solution is provided
+    const hasWorkspace = this.solutionWorkspace && 
+        typeof this.solutionWorkspace === 'object' && 
+        this.solutionWorkspace.nodes && 
+        this.solutionWorkspace.nodes.length > 0;
+    
+    const hasWrittenSolution = this.writtenSolution && this.writtenSolution.trim().length > 0;
+    
+    if (!hasWorkspace && !hasWrittenSolution) {
+        return next(new Error('At least one form of solution (workspace or written) is required'));
     }
 
     next();
