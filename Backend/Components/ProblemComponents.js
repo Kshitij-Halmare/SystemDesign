@@ -18,7 +18,7 @@ export const ProblemInput = async (req, res) => {
       solutionWorkspace, 
       writtenSolution 
     } = req.body;
-    const userId = req.user.userId; // Based on your commented code structure
+    const userId = req.user.userId;
     
     console.log('Request data:', { 
       title, 
@@ -32,8 +32,6 @@ export const ProblemInput = async (req, res) => {
       solutionWorkspace: solutionWorkspace ? 'provided' : 'not provided',
       writtenSolution: writtenSolution ? `${writtenSolution.length} chars` : 'not provided'
     });
-    console.log('User:', req.user);
-    console.log('Files:', req.files ? req.files.length : 0);
     
     // Validate required fields
     if (!title || !description || !difficulty) {
@@ -52,11 +50,46 @@ export const ProblemInput = async (req, res) => {
       parsedHints = typeof hints === 'string' ? JSON.parse(hints) : (hints || []);
       parsedTags = typeof tags === 'string' ? JSON.parse(tags) : (tags || []);
       
-      // Parse solution workspace if provided
+      // Parse solution workspace if provided - FIXED
       if (solutionWorkspace) {
-        parsedSolutionWorkspace = typeof solutionWorkspace === 'string' 
-          ? JSON.parse(solutionWorkspace) 
-          : solutionWorkspace;
+        if (typeof solutionWorkspace === 'string') {
+          parsedSolutionWorkspace = JSON.parse(solutionWorkspace);
+        } else {
+          parsedSolutionWorkspace = solutionWorkspace;
+        }
+        
+        // Ensure the workspace has the correct structure
+        if (!parsedSolutionWorkspace.nodes) {
+          parsedSolutionWorkspace.nodes = [];
+        }
+        if (!parsedSolutionWorkspace.edges) {
+          parsedSolutionWorkspace.edges = [];
+        }
+        if (!parsedSolutionWorkspace.notes) {
+          parsedSolutionWorkspace.notes = '';
+        }
+        
+        // Validate node structure for ReactFlow compatibility
+        parsedSolutionWorkspace.nodes = parsedSolutionWorkspace.nodes.map(node => ({
+          id: node.id || `node_${Date.now()}_${Math.random()}`,
+          type: node.type || 'default',
+          position: node.position || { x: 0, y: 0 },
+          data: node.data || { label: node.label || 'Component' }
+        }));
+        
+        // Validate edge structure
+        parsedSolutionWorkspace.edges = parsedSolutionWorkspace.edges.map(edge => ({
+          id: edge.id || `edge_${Date.now()}_${Math.random()}`,
+          source: edge.source,
+          target: edge.target,
+          type: edge.type || 'default'
+        }));
+        
+        console.log('Parsed solution workspace:', {
+          nodes: parsedSolutionWorkspace.nodes.length,
+          edges: parsedSolutionWorkspace.edges.length,
+          notes: parsedSolutionWorkspace.notes ? 'provided' : 'empty'
+        });
       }
     } catch (parseError) {
       console.error('Parse error:', parseError);
@@ -81,7 +114,7 @@ export const ProblemInput = async (req, res) => {
       });
     }
 
-    // Validate that at least one form of solution is provided
+    // Validate that at least one form of solution is provided - IMPROVED
     const hasWorkspaceSolution = parsedSolutionWorkspace && 
       parsedSolutionWorkspace.nodes && 
       parsedSolutionWorkspace.nodes.length > 0;
@@ -101,7 +134,6 @@ export const ProblemInput = async (req, res) => {
       console.log(`Processing ${req.files.length} images...`);
       
       try {
-        // Upload each image to cloudinary using your existing function
         const uploadPromises = req.files.map(async (file, index) => {
           try {
             console.log(`Uploading image ${index + 1}: ${file.originalname}`);
@@ -132,25 +164,24 @@ export const ProblemInput = async (req, res) => {
       }
     }
     
-    // Parse description if it's a JSON string (like in your commented code)
+    // Parse description if it's a JSON string
     let parsedDescription;
     try {
       parsedDescription = typeof description === 'string' ? JSON.parse(description) : description;
     } catch (descError) {
-      // If parsing fails, treat as plain text
       parsedDescription = description;
     }
     
-    // Create problem using your Mongoose schema
+    // Create problem using your Mongoose schema - FIXED
     const problem = new Problem({
       title: title.trim(),
       description: parsedDescription,
       difficulty: difficulty.toLowerCase(),
       hints: parsedHints.map(hint => hint.trim()).filter(hint => hint.length > 0),
       tags: parsedTags.map(tag => tag.toLowerCase().trim()).filter(tag => tag.length > 0),
-      images: imageUrls, // Array of image objects with url, publicId, etc.
-      solutionWorkspace: parsedSolutionWorkspace, // Solution workspace data
-      writtenSolution: writtenSolution ? writtenSolution.trim() : '', // Written solution
+      images: imageUrls,
+      solutionWorkspace: parsedSolutionWorkspace, // Store as object, not string
+      writtenSolution: writtenSolution ? writtenSolution.trim() : '',
       views: parseInt(views) || 0,
       likes: parseInt(likes) || 0,
       reviewed: reviewed === 'true' || reviewed === true || false,
@@ -158,8 +189,16 @@ export const ProblemInput = async (req, res) => {
     });
     
     console.log('Problem object before save:', {
-      ...problem.toObject(),
-      solutionWorkspace: problem.solutionWorkspace ? 'workspace provided' : 'no workspace',
+      title: problem.title,
+      difficulty: problem.difficulty,
+      hintsCount: problem.hints.length,
+      tagsCount: problem.tags.length,
+      imagesCount: problem.images.length,
+      solutionWorkspace: problem.solutionWorkspace ? {
+        nodes: problem.solutionWorkspace.nodes?.length || 0,
+        edges: problem.solutionWorkspace.edges?.length || 0,
+        hasNotes: !!problem.solutionWorkspace.notes
+      } : 'no workspace',
       writtenSolution: problem.writtenSolution ? `${problem.writtenSolution.length} chars` : 'no written solution'
     });
     
@@ -178,9 +217,14 @@ export const ProblemInput = async (req, res) => {
         hintsCount: problem.hints.length,
         tagsCount: problem.tags.length,
         imagesCount: problem.images.length,
-        hasSolution: problem.hasSolution, // Using virtual
-        hasWorkspaceSolution: !!(parsedSolutionWorkspace && parsedSolutionWorkspace.nodes && parsedSolutionWorkspace.nodes.length > 0),
-        hasWrittenSolution: !!(writtenSolution && writtenSolution.trim().length > 0),
+        hasSolution: problem.hasSolution,
+        hasWorkspaceSolution: hasWorkspaceSolution,
+        hasWrittenSolution: hasWrittenSolution,
+        solutionSummary: {
+          nodes: parsedSolutionWorkspace?.nodes?.length || 0,
+          edges: parsedSolutionWorkspace?.edges?.length || 0,
+          notes: !!parsedSolutionWorkspace?.notes
+        },
         createdAt: problem.createdAt
       }
     });
@@ -188,7 +232,6 @@ export const ProblemInput = async (req, res) => {
   } catch (error) {
     console.error('Error in ProblemInput:', error);
     
-    // If it's a MongoDB validation error
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map(err => err.message);
       return res.status(400).json({
@@ -204,6 +247,7 @@ export const ProblemInput = async (req, res) => {
     });
   }
 };
+
 
 // Utility function for cleanup if needed
 export const cleanupImages = async (imageUrls) => {
@@ -261,7 +305,6 @@ export const getSpecificProblem = async (req, res) => {
     // Search by both _id and problemId (nanoid) to be flexible
     const problem = await Problem.findOne({
       $or: [
-        { _id: problemId },
         { problemId: problemId }
       ]
     }).populate('createdBy', 'name email');
@@ -276,7 +319,7 @@ export const getSpecificProblem = async (req, res) => {
     // Increment view count
     await Problem.findByIdAndUpdate(problem._id, { $inc: { views: 1 } });
     
-    console.log('Problem found:', problem._id);
+    console.log('Problem found:', problem);
     
     return res.status(200).json({
       message: "Successfully retrieved problem",

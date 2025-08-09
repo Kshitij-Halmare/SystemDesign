@@ -13,6 +13,7 @@ function Problems() {
                     method: "GET",
                 });
                 const data = await response.json();
+                console.log(data);
                 if (data.success) {
                     console.log(data.data);
                     setProblems(data.data);

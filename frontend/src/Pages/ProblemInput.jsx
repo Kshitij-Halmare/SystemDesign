@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import EditorJS from '@editorjs/editorjs';
 import Header from '@editorjs/header';
 import List from '@editorjs/list';
@@ -24,16 +24,15 @@ function ProblemInput() {
     
     const [formData, setFormData] = useState({
         title: '',
-        description: '',
+        description: { blocks: [] }, // Initialize as object, not string
         difficulty: 'medium',
-        hints: [], // Changed to array
+        hints: [], 
         userId: '',
-        images: [], // Ensure it's array
-        tags: [], // Ensure it's array
+        images: [], 
+        tags: [], 
         views: 0,
         likes: 0,
         reviewed: false,
-        // New fields for solution
         solutionWorkspace: null,
         writtenSolution: ''
     });
@@ -46,12 +45,16 @@ function ProblemInput() {
             const editor = new EditorJS({
                 holder: 'editorjs',
                 onChange: async () => {
-                    const content = await editor.save();
-                    const description = JSON.stringify(content);
-                    setFormData(prev => ({
-                        ...prev,
-                        description // Update description in real-time
-                    }));
+                    try {
+                        const content = await editor.save();
+                        // Store as object, not JSON string
+                        setFormData(prev => ({
+                            ...prev,
+                            description: content // Keep as object
+                        }));
+                    } catch (error) {
+                        console.error('Editor save error:', error);
+                    }
                 },
                 tools: {
                     header: {
@@ -66,7 +69,7 @@ function ProblemInput() {
                     list: { class: List, inlineToolbar: true },
                     paragraph: { class: Paragraph, inlineToolbar: true }
                 },
-                data: formData.description ? JSON.parse(formData.description) : { blocks: [] },
+                data: formData.description || { blocks: [] }, // Use object directly
                 placeholder: 'Describe the problem in detail...',
                 autofocus: true,
                 minHeight: 250,
@@ -83,7 +86,7 @@ function ProblemInput() {
                 isInitialized.current = false;
             }
         };
-    }, [formData.description]); // Ensure the effect runs when description changes
+    }, []); // Remove formData.description dependency to prevent re-initialization
 
     const handleInputTags = (e) => {
         const value = e.target.value.trim();
@@ -175,13 +178,32 @@ function ProblemInput() {
     };
 
     // Handler for solution workspace changes
-    const handleSolutionChange = (solution) => {
-        setSolutionData(solution);
-        setFormData(prev => ({
+    const handleSolutionChange = useCallback((solution) => {
+        // Ensure solution has proper structure
+        const structuredSolution = {
+            nodes: solution.nodes || [],
+            edges: solution.edges || [],
+            notes: solution.notes || ''
+        };
+
+        // Update state only if the solution has changed
+        setSolutionData((prevSolution) => {
+            if (
+                JSON.stringify(prevSolution.nodes) !== JSON.stringify(structuredSolution.nodes) ||
+                JSON.stringify(prevSolution.edges) !== JSON.stringify(structuredSolution.edges) ||
+                prevSolution.notes !== structuredSolution.notes
+            ) {
+                console.log('Solution workspace changed:', structuredSolution); // Debug log
+                return structuredSolution;
+            }
+            return prevSolution;
+        });
+
+        setFormData((prev) => ({
             ...prev,
-            solutionWorkspace: JSON.stringify(solution)
+            solutionWorkspace: structuredSolution // Store as object, not JSON string
         }));
-    };
+    }, []);
 
     // Handler for written answer changes
     const handleWrittenAnswerChange = (e) => {
@@ -203,14 +225,28 @@ function ProblemInput() {
             return;
         }
 
-        if (!formData.title || !formData.description || !formData.difficulty || !formData.tags) {
-            toast.error("All Fields are required");
+        // Get current editor content
+        let currentDescription = formData.description;
+        if (editorRef.current) {
+            try {
+                currentDescription = await editorRef.current.save();
+            } catch (error) {
+                console.error('Failed to get editor content:', error);
+            }
+        }
+
+        // Validate required fields
+        if (!formData.title.trim() || !currentDescription || !currentDescription.blocks || currentDescription.blocks.length === 0) {
+            toast.error("Title and description are required");
             setIsSubmitting(false);
             return;
         }
 
         // Validate that user has provided some form of solution
-        if (!solutionData.nodes.length && !writtenAnswer.trim()) {
+        const hasWorkspaceSolution = solutionData.nodes && solutionData.nodes.length > 0;
+        const hasWrittenSolution = writtenAnswer.trim().length > 0;
+        
+        if (!hasWorkspaceSolution && !hasWrittenSolution) {
             toast.error("Please provide either a solution workspace design or written answer");
             setIsSubmitting(false);
             return;
@@ -220,20 +256,25 @@ function ProblemInput() {
         const formDataToSend = new FormData();
 
         // Add basic form fields
-        formDataToSend.append('title', formData.title);
-        formDataToSend.append('description', formData.description);
+        formDataToSend.append('title', formData.title.trim());
+        formDataToSend.append('description', JSON.stringify(currentDescription)); // Send as JSON string
         formDataToSend.append('difficulty', formData.difficulty);
         formDataToSend.append('userId', user.userId);
-        formDataToSend.append('views', formData.views);
-        formDataToSend.append('likes', formData.likes);
-        formDataToSend.append('reviewed', formData.reviewed);
+        formDataToSend.append('views', formData.views.toString());
+        formDataToSend.append('likes', formData.likes.toString());
+        formDataToSend.append('reviewed', formData.reviewed.toString());
 
-        // Add arrays as JSON strings
+        // Add arrays as JSON strings (backend expects these as strings to parse)
         formDataToSend.append('tags', JSON.stringify(tags));
         formDataToSend.append('hints', JSON.stringify(hints));
 
-        // Add solution data
-        formDataToSend.append('solutionWorkspace', JSON.stringify(solutionData));
+        // Add solution data - ensure proper structure
+        const solutionToSend = {
+            nodes: solutionData.nodes || [],
+            edges: solutionData.edges || [],
+            notes: solutionData.notes || ''
+        };
+        formDataToSend.append('solutionWorkspace', JSON.stringify(solutionToSend));
         formDataToSend.append('writtenSolution', writtenAnswer);
 
         // Add image files
@@ -241,11 +282,37 @@ function ProblemInput() {
             formDataToSend.append('images', imageObj.file);
         });
 
+        // Debug log - Add more detailed logging
+        console.log('Sending data:', {
+            title: formData.title,
+            description: currentDescription,
+            difficulty: formData.difficulty,
+            tagsCount: tags.length,
+            hintsCount: hints.length,
+            imagesCount: images.length,
+            solutionNodes: solutionData.nodes?.length || 0,
+            solutionEdges: solutionData.edges?.length || 0,
+            writtenSolutionLength: writtenAnswer.length,
+            solutionWorkspaceToSend: solutionToSend,
+            rawSolutionData: solutionData
+        });
+
+        // Log what's actually being sent in FormData
+        console.log('FormData entries:');
+        for (let [key, value] of formDataToSend.entries()) {
+            if (key === 'solutionWorkspace') {
+                console.log(`${key}:`, value); // This will show the actual JSON string
+            } else if (key !== 'images') { // Skip logging files
+                console.log(`${key}:`, value);
+            }
+        }
+
         try {
             const response = await fetch(`${import.meta.env.VITE_SERVER_DOMAIN}/api/problem/problemInput`, {
                 method: 'POST',
                 headers: {
                     Authorization: `Bearer ${token}`,
+                    // Don't set Content-Type for FormData, let browser set it
                 },
                 body: formDataToSend,
             });
@@ -256,6 +323,7 @@ function ProblemInput() {
                 return;
             }
 
+            const result = await response.json();
             toast.success("Problem and solution submitted successfully!");
 
             // Clean up object URLs before resetting
@@ -265,10 +333,10 @@ function ProblemInput() {
                 }
             });
 
-            // Reset form data with proper arrays
+            // Reset form data with proper structure
             setFormData({
                 title: '',
-                description: '',
+                description: { blocks: [] }, // Reset as object
                 difficulty: 'medium',
                 hints: [],
                 tags: [],
@@ -287,8 +355,13 @@ function ProblemInput() {
             setSolutionData({ nodes: [], edges: [], notes: '' });
             setWrittenAnswer('');
 
-            if (editorRef.current?.clear) {
-                await editorRef.current.clear();
+            // Clear editor
+            if (editorRef.current) {
+                try {
+                    await editorRef.current.clear();
+                } catch (error) {
+                    console.error('Failed to clear editor:', error);
+                }
             }
 
         } catch (error) {
@@ -453,7 +526,7 @@ function ProblemInput() {
                     </div>
                     <p className='text-gray-500 font-semibold px-3'>{`Tags added: ${tags.length}/5`}</p>
 
-                    {/* Fallback display if TagsUi is not available */}
+                    {/* Display tags */}
                     {tags.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-2">
                             {tags.map((tag, index) => (
@@ -508,7 +581,13 @@ function ProblemInput() {
                 </h2>
                 <div className="bg-gray-900/50 rounded-lg border border-gray-700 overflow-hidden">
                     <div className="pt-4 border-t border-gray-700 flex h-screen">
-                        <ProblemDisplay problem={{ ...formData, description: JSON.parse(formData.description || '{}') }} showWorkspace={true} />
+                        <ProblemDisplay 
+                            problem={{ 
+                                ...formData, 
+                                description: formData.description || { blocks: [] } 
+                            }} 
+                            showWorkspace={true} 
+                        />
                         <SolutionWorkspace 
                             expertMode={false}
                             onSolutionChange={handleSolutionChange}

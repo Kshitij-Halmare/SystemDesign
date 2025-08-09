@@ -29,6 +29,8 @@ function ProblemSolving() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('description');
+  const [showSolution, setShowSolution] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   // ReactFlow states
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -55,6 +57,9 @@ function ProblemSolving() {
         }
 
         const result = await response.json();
+        console.log('Fetched problem data:', result);
+        
+        // The backend returns { data: problemObject }, not { data: [problemObject] }
         setData(result.data);
       } catch (error) {
         console.error("Error fetching problem:", error);
@@ -69,6 +74,7 @@ function ProblemSolving() {
     }
   }, [problemId]);
 
+  
   const onConnect = useCallback(
     (params) =>
       setEdges((eds) => addEdge({ ...params, id: generateId(), type: 'default' }, eds)),
@@ -146,6 +152,19 @@ function ProblemSolving() {
     });
   };
 
+  const handleSubmitSolution = () => {
+    setIsSubmitted(true);
+    setShowSolution(true);
+  };
+
+  const resetWorkspace = () => {
+    setIsSubmitted(false);
+    setShowSolution(false);
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+    setMarkdownNotes("");
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
@@ -175,7 +194,8 @@ function ProblemSolving() {
     );
   }
 
-  if (!data || !data[0]) {
+  // Fixed: Check for data directly, not data[0]
+  if (!data) {
     return (
       <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
         <div className="text-center">
@@ -187,7 +207,8 @@ function ProblemSolving() {
     );
   }
 
-  const problem = data[0];
+  // Fixed: Use data directly, not data[0]
+  const problem = data;
 
   const components = [
     { name: 'API Gateway', icon: '🌐', color: 'blue', desc: 'Entry point for API requests' },
@@ -362,71 +383,266 @@ function ProblemSolving() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="bg-gray-800/50 px-6 py-4 border-b border-gray-700/50">
-          <h2 className="text-lg font-semibold text-white">Solution Workspace</h2>
-          <p className="text-sm text-gray-400 mt-1">Design your system architecture</p>
+        <div className="bg-gray-800/50 px-6 py-4 border-b border-gray-700/50 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-white">
+              {showSolution ? 'Solution Comparison' : 'Solution Workspace'}
+            </h2>
+            <p className="text-sm text-gray-400 mt-1">
+              {showSolution ? 'Your solution vs Expert solution' : 'Design your system architecture'}
+            </p>
+          </div>
+          <div className="flex gap-3">
+            {showSolution && (
+              <button
+                onClick={resetWorkspace}
+                className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors"
+              >
+                Try Again
+              </button>
+            )}
+            {!isSubmitted && (
+              <button
+                onClick={handleSubmitSolution}
+                disabled={nodes.length <= 1}
+                className={`px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors ${
+                  nodes.length <= 1 
+                    ? 'bg-gray-600 cursor-not-allowed' 
+                    : 'bg-blue-600 hover:bg-blue-700'
+                }`}
+              >
+                Submit Solution
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Content */}
         <div className="flex-1 flex">
-          {/* Canvas */}
-          <div className="flex-1" ref={reactFlowWrapper}>
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-              onInit={setReactFlowInstance}
-              onDrop={onDrop}
-              onDragOver={onDragOver}
-              fitView
-              className="bg-gray-50"
-            >
-              <MiniMap 
-                nodeColor={getNodeColor}
-                nodeStrokeColor="#333"
-                nodeStrokeWidth={1}
-                maskColor="rgba(0,0,0,0.1)"
-                style={{
-                  backgroundColor: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '4px'
-                }}
-              />
-              <Controls 
-                style={{
-                  backgroundColor: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '4px'
-                }}
-              />
-              <Background color="#e2e8f0" gap={16} />
-            </ReactFlow>
-          </div>
+          {!showSolution ? (
+            <>
+              {/* Canvas */}
+              <div className="flex-1" ref={reactFlowWrapper}>
+                <ReactFlow
+                  nodes={nodes}
+                  edges={edges}
+                  onNodesChange={onNodesChange}
+                  onEdgesChange={onEdgesChange}
+                  onConnect={onConnect}
+                  onInit={setReactFlowInstance}
+                  onDrop={onDrop}
+                  onDragOver={onDragOver}
+                  fitView
+                  className="bg-gray-50"
+                >
+                  <MiniMap 
+                    nodeColor={getNodeColor}
+                    nodeStrokeColor="#333"
+                    nodeStrokeWidth={1}
+                    maskColor="rgba(0,0,0,0.1)"
+                    style={{
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '4px'
+                    }}
+                  />
+                  <Controls 
+                    style={{
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '4px'
+                    }}
+                  />
+                  <Background color="#e2e8f0" gap={16} />
+                </ReactFlow>
+              </div>
 
-          {/* Notes Panel */}
-          <div className="w-80 bg-gray-800/50 border-l border-gray-700/50 flex flex-col">
-            <div className="p-4 border-b border-gray-700/50">
-              <h3 className="text-sm font-semibold text-white">Design Notes</h3>
-              <p className="text-xs text-gray-400 mt-1">Document your architecture decisions</p>
-            </div>
-            <div className="flex-1 p-4">
-              <textarea
-                value={markdownNotes}
-                onChange={(e) => setMarkdownNotes(e.target.value)}
-                className="w-full h-full p-3 rounded text-sm bg-gray-700/50 text-white border border-gray-600/50 resize-none focus:ring-2 focus:ring-blue-500 focus:outline-none placeholder-gray-400"
-                placeholder="Explain your design decisions...
+              {/* Notes Panel */}
+              <div className="w-80 bg-gray-800/50 border-l border-gray-700/50 flex flex-col">
+                <div className="p-4 border-b border-gray-700/50">
+                  <h3 className="text-sm font-semibold text-white">Design Notes</h3>
+                  <p className="text-xs text-gray-400 mt-1">Document your architecture decisions</p>
+                </div>
+                <div className="flex-1 p-4">
+                  <textarea
+                    value={markdownNotes}
+                    onChange={(e) => setMarkdownNotes(e.target.value)}
+                    className="w-full h-full p-3 rounded text-sm bg-gray-700/50 text-white border border-gray-600/50 resize-none focus:ring-2 focus:ring-blue-500 focus:outline-none placeholder-gray-400"
+                    placeholder="Explain your design decisions...
 
 • Why did you choose this architecture?
 • What are the scalability considerations?
 • How does data flow through the system?
 • What are potential bottlenecks?
 • Trade-offs and alternatives considered?"
-              />
+                  />
+                </div>
+              </div>
+            </>
+          ) : (
+            /* Solution Comparison View */
+            <div className="flex-1 flex">
+              {/* Your Solution */}
+              <div className="flex-1 flex flex-col">
+                <div className="bg-blue-600/20 border-b border-blue-500/30 p-3">
+                  <h3 className="text-sm font-semibold text-blue-300">Your Solution</h3>
+                </div>
+                <div className="flex-1 bg-gray-50">
+                  <ReactFlow
+                    nodes={nodes}
+                    edges={edges}
+                    nodesDraggable={false}
+                    nodesConnectable={false}
+                    elementsSelectable={false}
+                    fitView
+                    className="bg-gray-50"
+                  >
+                    <Background color="#e2e8f0" gap={16} />
+                  </ReactFlow>
+                </div>
+                <div className="p-3 bg-gray-800/30 border-t border-gray-700/50">
+                  <h4 className="text-xs font-semibold text-gray-300 mb-2">Your Notes:</h4>
+                  <div className="bg-gray-700/30 rounded p-2 max-h-32 overflow-y-auto">
+                    <p className="text-xs text-gray-300 whitespace-pre-wrap">
+                      {markdownNotes || "No notes provided"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="w-px bg-gray-700"></div>
+
+              {/* Expert Solution */}
+              <div className="flex-1 flex flex-col">
+                <div className="bg-green-600/20 border-b border-green-500/30 p-3">
+                  <h3 className="text-sm font-semibold text-green-300">Expert Solution</h3>
+                  <p className="text-xs text-green-200 mt-1">
+                    Status: {problem.hasSolution ? 'Available' : 'Not Available'}
+                  </p>
+                </div>
+                <div className="flex-1">
+                  {/* Check if expert has visual solution */}
+                  {problem.solutionWorkspace?.nodes && problem.solutionWorkspace.nodes.length > 0 ? (
+                    <div className="h-full bg-gray-50">
+                      <ReactFlow
+                        nodes={problem.solutionWorkspace.nodes.map(node => ({
+                          ...node,
+                          id: node.id || generateId(),
+                          position: node.position || { x: 100, y: 100 },
+                          data: { label: node.label || node.data?.label || 'Component' }
+                        }))}
+                        edges={problem.solutionWorkspace.edges || []}
+                        nodesDraggable={false}
+                        nodesConnectable={false}
+                        elementsSelectable={false}
+                        fitView
+                        className="bg-gray-50"
+                      >
+                        <Background color="#e2e8f0" gap={16} />
+                      </ReactFlow>
+                    </div>
+                  ) : (
+                    /* Written Solution Display */
+                    <div className="h-full p-4 overflow-y-auto">
+                      <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/30 h-full">
+                        <h4 className="text-sm font-semibold text-gray-300 mb-3">Expert Written Solution</h4>
+                        {problem.writtenSolution ? (
+                          <div className="prose prose-invert prose-sm max-w-none">
+                            <p className="text-gray-200 text-sm leading-relaxed whitespace-pre-wrap">
+                              {problem.writtenSolution}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center h-32 text-gray-500">
+                            <div className="text-center">
+                              <div className="text-2xl mb-2">📝</div>
+                              <p className="text-sm">No expert solution available yet</p>
+                              <p className="text-xs mt-1">This problem hasn't been solved by an expert</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Expert Notes Section */}
+                {(problem.solutionWorkspace?.notes || problem.writtenSolution) && (
+                  <div className="p-3 bg-gray-800/30 border-t border-gray-700/50">
+                    <h4 className="text-xs font-semibold text-gray-300 mb-2">Additional Notes:</h4>
+                    <div className="bg-gray-700/30 rounded p-2 max-h-24 overflow-y-auto">
+                      <p className="text-xs text-gray-300 whitespace-pre-wrap">
+                        {problem.solutionWorkspace?.notes || "See written solution above"}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Solution Analysis Footer */}
+        {showSolution && (
+          <div className="bg-gray-800/50 border-t border-gray-700/50 p-4">
+            <div className="max-w-6xl mx-auto">
+              <h3 className="text-sm font-semibold text-white mb-3">Solution Comparison</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                <div className="bg-blue-600/10 border border-blue-500/20 rounded-lg p-3">
+                  <h4 className="font-semibold text-blue-300 mb-1">Your Design</h4>
+                  <p className="text-gray-300">
+                    Components: {nodes.length - 1}
+                  </p>
+                  <p className="text-gray-300">
+                    Connections: {edges.length}
+                  </p>
+                  <p className="text-gray-300">
+                    Notes: {markdownNotes ? 'Provided' : 'None'}
+                  </p>
+                </div>
+                <div className="bg-green-600/10 border border-green-500/20 rounded-lg p-3">
+                  <h4 className="font-semibold text-green-300 mb-1">Expert Design</h4>
+                  <p className="text-gray-300">
+                    Visual: {(problem.solutionWorkspace?.nodes?.length > 0) ? 'Available' : 'Text Only'}
+                  </p>
+                  <p className="text-gray-300">
+                    Written: {problem.writtenSolution ? 'Available' : 'None'}
+                  </p>
+                  <p className="text-gray-300">
+                    Status: {problem.hasSolution ? 'Complete' : 'Pending'}
+                  </p>
+                </div>
+                <div className="bg-purple-600/10 border border-purple-500/20 rounded-lg p-3">
+                  <h4 className="font-semibold text-purple-300 mb-1">Approach</h4>
+                  <p className="text-gray-300">
+                    {problem.solutionWorkspace?.nodes?.length > 0 ? 'Visual + Text' : 'Text-based'}
+                  </p>
+                </div>
+                <div className="bg-yellow-600/10 border border-yellow-500/20 rounded-lg p-3">
+                  <h4 className="font-semibold text-yellow-300 mb-1">Learning</h4>
+                  <p className="text-gray-300">
+                    Compare architectures and reasoning
+                  </p>
+                </div>
+              </div>
+
+              {/* Written Solution Section */}
+              <div className="mt-6">
+                <h4 className="text-sm font-semibold text-white mb-2">Expert Written Solution</h4>
+                <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/30">
+                  {problem.writtenSolution ? (
+                    <p className="text-gray-200 text-sm leading-relaxed whitespace-pre-wrap">
+                      {problem.writtenSolution}
+                    </p>
+                  ) : (
+                    <p className="text-gray-400 text-sm">No written solution available for this problem.</p>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import ReactFlow, {
   MiniMap,
   Controls,
@@ -40,22 +40,31 @@ const SolutionWorkspace = ({
   const reactFlowWrapper = useRef(null);
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
 
+  // Effect to notify parent of changes - ADDED
+  useEffect(() => {
+    if (onSolutionChange) {
+      const currentSolution = { nodes, edges, notes: markdownNotes };
+      onSolutionChange(currentSolution);
+    }
+  }, [nodes, edges, markdownNotes, onSolutionChange]);
+
   const onConnect = useCallback(
     (params) => {
       const newEdges = addEdge({ ...params, id: generateId(), type: 'default' }, edges);
       setEdges(newEdges);
-      
-      // Notify parent component if in expert mode
-      if (expertMode && onSolutionChange) {
-        onSolutionChange({
-          nodes,
-          edges: newEdges,
-          notes: markdownNotes
-        });
-      }
     },
-    [setEdges, edges, nodes, markdownNotes, expertMode, onSolutionChange]
+    [setEdges, edges]
   );
+
+  // Custom nodes change handler to notify parent - ADDED
+  const handleNodesChange = useCallback((changes) => {
+    onNodesChange(changes);
+  }, [onNodesChange]);
+
+  // Custom edges change handler to notify parent - ADDED
+  const handleEdgesChange = useCallback((changes) => {
+    onEdgesChange(changes);
+  }, [onEdgesChange]);
 
   const onDragOver = useCallback((event) => {
     event.preventDefault();
@@ -85,30 +94,44 @@ const SolutionWorkspace = ({
         data: { label: type },
       };
 
-      const newNodes = nodes.concat(newNode);
-      setNodes(newNodes);
-
-      // Notify parent component if in expert mode
-      if (expertMode && onSolutionChange) {
-        onSolutionChange({
-          nodes: newNodes,
-          edges,
-          notes: markdownNotes
-        });
-      }
+      setNodes((nds) => nds.concat(newNode));
     },
-    [reactFlowInstance, setNodes, nodes, edges, markdownNotes, expertMode, onSolutionChange]
+    [reactFlowInstance, setNodes]
   );
 
   const handleNotesChange = (value) => {
     setMarkdownNotes(value);
     
-    // Notify parent component if in expert mode
-    if (expertMode && onSolutionChange) {
+    // Always notify parent component when available - FIXED
+    if (onSolutionChange) {
       onSolutionChange({
         nodes,
         edges,
         notes: value
+      });
+    }
+  };
+
+  // Add new component function - ADDED
+  const addComponent = (componentType) => {
+    const newNode = {
+      id: generateId(),
+      type: 'default',
+      position: {
+        x: Math.random() * 300 + 100,
+        y: Math.random() * 200 + 100,
+      },
+      data: { label: componentType },
+    };
+
+    const newNodes = [...nodes, newNode];
+    setNodes(newNodes);
+
+    if (onSolutionChange) {
+      onSolutionChange({
+        nodes: newNodes,
+        edges,
+        notes: markdownNotes
       });
     }
   };
@@ -129,7 +152,7 @@ const SolutionWorkspace = ({
     setNodes(initialNodes); // Always reset to initialNodes with Client block
     setEdges(initialEdges);
     setMarkdownNotes('');
-    if (expertMode && onSolutionChange) {
+    if (onSolutionChange) {
       onSolutionChange({
         nodes: initialNodes,
         edges: initialEdges,
@@ -152,7 +175,7 @@ const SolutionWorkspace = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col ">
+    <div className="flex-1 flex flex-col">
       {/* Header */}
       <div className="bg-gray-800/50 px-6 py-4 border-b border-gray-700/50">
         <div className="flex items-center justify-between">
@@ -182,6 +205,19 @@ const SolutionWorkspace = ({
             )}
           </div>
         </div>
+        
+        {/* Quick Add Components - ADDED */}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {['Database', 'API Gateway', 'Load Balancer', 'Cache', 'Message Queue', 'Microservice'].map((component) => (
+            <button
+              key={component}
+              onClick={() => addComponent(component)}
+              className="bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/50 text-blue-300 px-2 py-1 rounded text-xs transition-colors"
+            >
+              + {component}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Content */}
@@ -191,8 +227,8 @@ const SolutionWorkspace = ({
           <ReactFlow
             nodes={nodes}
             edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
+            onNodesChange={handleNodesChange}
+            onEdgesChange={handleEdgesChange}
             onConnect={onConnect}
             onInit={setReactFlowInstance}
             onDrop={onDrop}
