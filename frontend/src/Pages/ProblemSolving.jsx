@@ -9,7 +9,7 @@ import ReactFlow, {
   addEdge,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-
+import { useAuth } from '../../Authentication/Authentication';
 const generateId = () => `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
 const initialNodes = [
@@ -31,7 +31,12 @@ function ProblemSolving() {
   const [activeTab, setActiveTab] = useState('description');
   const [showSolution, setShowSolution] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-
+  const [viewMode, setViewMode] = useState('workspace'); // 'workspace', 'mySolutions', 'comparison'
+  const [selectedSolutionIndex, setSelectedSolutionIndex] = useState(0);
+  const [userSolutions, setUserSolutions] = useState([]);
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const {user}=useAuth();
+  console.log(user);
   // ReactFlow states
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -59,8 +64,23 @@ function ProblemSolving() {
         const result = await response.json();
         console.log('Fetched problem data:', result);
         
-        // The backend returns { data: problemObject }, not { data: [problemObject] }
         setData(result.data);
+        
+        // Get current user's solutions
+        const userId = user.userId // Adjust based on your auth implementation
+        setCurrentUserId(userId);
+        
+        if (result.data.userSolutions) {
+          const mySolutions = result.data.userSolutions.filter(
+            sol => sol.submittedBy._id === userId || sol.submittedBy === userId
+          );
+          setUserSolutions(mySolutions);
+          
+          // If user has solutions, show them by default
+          if (mySolutions.length > 0) {
+            setViewMode('mySolutions');
+          }
+        }
       } catch (error) {
         console.error("Error fetching problem:", error);
         setError(error.message);
@@ -74,7 +94,6 @@ function ProblemSolving() {
     }
   }, [problemId]);
 
-  
   const onConnect = useCallback(
     (params) =>
       setEdges((eds) => addEdge({ ...params, id: generateId(), type: 'default' }, eds)),
@@ -148,21 +167,83 @@ function ProblemSolving() {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
-  const handleSubmitSolution = () => {
-    setIsSubmitted(true);
-    setShowSolution(true);
+  const handleSubmitSolution = async () => {
+    try {
+      const token = localStorage.getItem('token'); // Adjust based on your auth
+      
+      const solutionData = {
+        problemId: problemId,
+        solutionWorkspace: {
+          nodes: nodes,
+          edges: edges,
+          notes: markdownNotes
+        },
+        writtenSolution: markdownNotes,
+        userId:user.userId
+      };
+
+      const response = await fetch(`${import.meta.env.VITE_SERVER_DOMAIN}/api/problem/submit-solution`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(solutionData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit solution');
+      }
+
+      const result = await response.json();
+      
+      setIsSubmitted(true);
+      setViewMode('comparison');
+      
+      // Refresh problem data to get updated solutions
+      const refreshResponse = await fetch(`${import.meta.env.VITE_SERVER_DOMAIN}/api/problem/getSpecificProblem`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ problemId }),
+      });
+      
+      const refreshResult = await refreshResponse.json();
+      setData(refreshResult.data);
+      
+      const mySolutions = refreshResult.data.userSolutions.filter(
+        sol => sol.submittedBy._id === currentUserId || sol.submittedBy === currentUserId
+      );
+      setUserSolutions(mySolutions);
+      
+      alert('Solution submitted successfully!');
+    } catch (error) {
+      console.error('Error submitting solution:', error);
+      alert('Failed to submit solution: ' + error.message);
+    }
   };
 
   const resetWorkspace = () => {
     setIsSubmitted(false);
-    setShowSolution(false);
+    setViewMode('workspace');
     setNodes(initialNodes);
     setEdges(initialEdges);
     setMarkdownNotes("");
+  };
+
+  const loadSolution = (solution) => {
+    if (solution.solutionWorkspace) {
+      setNodes(solution.solutionWorkspace.nodes || initialNodes);
+      setEdges(solution.solutionWorkspace.edges || initialEdges);
+      setMarkdownNotes(solution.solutionWorkspace.notes || solution.writtenSolution || "");
+    }
   };
 
   if (loading) {
@@ -194,7 +275,6 @@ function ProblemSolving() {
     );
   }
 
-  // Fixed: Check for data directly, not data[0]
   if (!data) {
     return (
       <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
@@ -207,7 +287,6 @@ function ProblemSolving() {
     );
   }
 
-  // Fixed: Use data directly, not data[0]
   const problem = data;
 
   const components = [
@@ -246,6 +325,21 @@ function ProblemSolving() {
               <span>{problem.likes || 0} likes</span>
             </div>
           </div>
+
+          {/* My Solutions Summary */}
+          {userSolutions.length > 0 && (
+            <div className="mt-3 p-2 bg-blue-600/10 border border-blue-500/20 rounded">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-blue-300">Your Solutions: {userSolutions.length}</span>
+                <button
+                  onClick={() => setViewMode('mySolutions')}
+                  className="text-blue-400 hover:text-blue-300"
+                >
+                  View →
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Tabs */}
@@ -341,14 +435,7 @@ function ProblemSolving() {
                             alt={image.originalName || `Diagram ${index + 1}`}
                             className="w-full h-auto rounded border border-gray-600/50 transition-transform duration-200 group-hover:scale-[1.02]"
                             loading="lazy"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              e.target.nextSibling.style.display = 'flex';
-                            }}
                           />
-                          <div className="hidden aspect-video bg-gray-600/30 rounded items-center justify-center">
-                            <span className="text-gray-400 text-xs">Failed to load image</span>
-                          </div>
                         </div>
                       </div>
                     ))}
@@ -386,14 +473,26 @@ function ProblemSolving() {
         <div className="bg-gray-800/50 px-6 py-4 border-b border-gray-700/50 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-white">
-              {showSolution ? 'Solution Comparison' : 'Solution Workspace'}
+              {viewMode === 'workspace' && 'Solution Workspace'}
+              {viewMode === 'mySolutions' && 'My Solutions'}
+              {viewMode === 'comparison' && 'Solution Comparison'}
             </h2>
             <p className="text-sm text-gray-400 mt-1">
-              {showSolution ? 'Your solution vs Expert solution' : 'Design your system architecture'}
+              {viewMode === 'workspace' && 'Design your system architecture'}
+              {viewMode === 'mySolutions' && 'Review your past submissions'}
+              {viewMode === 'comparison' && 'Your solution vs Best solution'}
             </p>
           </div>
           <div className="flex gap-3">
-            {showSolution && (
+            {viewMode === 'mySolutions' && (
+              <button
+                onClick={() => setViewMode('workspace')}
+                className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors"
+              >
+                New Solution
+              </button>
+            )}
+            {viewMode === 'comparison' && (
               <button
                 onClick={resetWorkspace}
                 className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors"
@@ -401,7 +500,7 @@ function ProblemSolving() {
                 Try Again
               </button>
             )}
-            {!isSubmitted && (
+            {viewMode === 'workspace' && !isSubmitted && (
               <button
                 onClick={handleSubmitSolution}
                 disabled={nodes.length <= 1}
@@ -418,8 +517,8 @@ function ProblemSolving() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 flex">
-          {!showSolution ? (
+        <div className="flex-1 flex overflow-hidden">
+          {viewMode === 'workspace' ? (
             <>
               {/* Canvas */}
               <div className="flex-1" ref={reactFlowWrapper}>
@@ -479,6 +578,84 @@ function ProblemSolving() {
                 </div>
               </div>
             </>
+          ) : viewMode === 'mySolutions' ? (
+            /* My Solutions View */
+            <div className="flex-1 flex">
+              {/* Solutions List */}
+              <div className="w-80 bg-gray-800/50 border-r border-gray-700/50 flex flex-col">
+                <div className="p-4 border-b border-gray-700/50">
+                  <h3 className="text-sm font-semibold text-white">Your Submissions</h3>
+                  <p className="text-xs text-gray-400 mt-1">{userSolutions.length} solution(s)</p>
+                </div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                  {userSolutions.map((solution, index) => (
+                    <button
+                      key={solution._id || index}
+                      onClick={() => {
+                        setSelectedSolutionIndex(index);
+                        loadSolution(solution);
+                      }}
+                      className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                        selectedSolutionIndex === index
+                          ? 'bg-blue-600/20 border-blue-500/50'
+                          : 'bg-gray-700/30 border-gray-600/30 hover:border-gray-500/50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-semibold text-gray-300">
+                          Solution #{userSolutions.length - index}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {solution.votes || 0} votes
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-400">
+                        {formatDate(solution.submittedAt)}
+                      </p>
+                      {solution.isApproved && (
+                        <span className="inline-block mt-2 px-2 py-0.5 bg-green-600/20 text-green-300 text-xs rounded border border-green-600/30">
+                          Approved
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Solution Preview */}
+              <div className="flex-1 flex flex-col">
+                <div className="flex-1 bg-gray-50">
+                  <ReactFlow
+                    nodes={nodes}
+                    edges={edges}
+                    nodesDraggable={false}
+                    nodesConnectable={false}
+                    elementsSelectable={false}
+                    fitView
+                    className="bg-gray-50"
+                  >
+                    <Background color="#e2e8f0" gap={16} />
+                    <Controls />
+                  </ReactFlow>
+                </div>
+                <div className="p-4 bg-gray-800/30 border-t border-gray-700/50 max-h-48 overflow-y-auto">
+                  <h4 className="text-xs font-semibold text-gray-300 mb-2">Notes:</h4>
+                  <p className="text-xs text-gray-300 whitespace-pre-wrap">
+                    {markdownNotes || "No notes provided"}
+                  </p>
+                </div>
+                
+                {/* Compare Button */}
+                <div className="p-4 bg-gray-800/50 border-t border-gray-700/50">
+                  <button
+                    onClick={() => setViewMode('comparison')}
+                    className="w-full bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors"
+                  >
+                    Compare with Best Solution
+                  </button>
+                </div>
+              </div>
+            </div>
           ) : (
             /* Solution Comparison View */
             <div className="flex-1 flex">
@@ -486,6 +663,11 @@ function ProblemSolving() {
               <div className="flex-1 flex flex-col">
                 <div className="bg-blue-600/20 border-b border-blue-500/30 p-3">
                   <h3 className="text-sm font-semibold text-blue-300">Your Solution</h3>
+                  {userSolutions[selectedSolutionIndex] && (
+                    <p className="text-xs text-blue-200 mt-1">
+                      Submitted: {formatDate(userSolutions[selectedSolutionIndex].submittedAt)}
+                    </p>
+                  )}
                 </div>
                 <div className="flex-1 bg-gray-50">
                   <ReactFlow
@@ -500,39 +682,43 @@ function ProblemSolving() {
                     <Background color="#e2e8f0" gap={16} />
                   </ReactFlow>
                 </div>
-                <div className="p-3 bg-gray-800/30 border-t border-gray-700/50">
+                <div className="p-3 bg-gray-800/30 border-t border-gray-700/50 max-h-32 overflow-y-auto">
                   <h4 className="text-xs font-semibold text-gray-300 mb-2">Your Notes:</h4>
-                  <div className="bg-gray-700/30 rounded p-2 max-h-32 overflow-y-auto">
-                    <p className="text-xs text-gray-300 whitespace-pre-wrap">
-                      {markdownNotes || "No notes provided"}
-                    </p>
-                  </div>
+                  <p className="text-xs text-gray-300 whitespace-pre-wrap">
+                    {markdownNotes || "No notes provided"}
+                  </p>
                 </div>
               </div>
 
               {/* Divider */}
               <div className="w-px bg-gray-700"></div>
 
-              {/* Expert Solution */}
+              {/* Best Solution */}
               <div className="flex-1 flex flex-col">
                 <div className="bg-green-600/20 border-b border-green-500/30 p-3">
-                  <h3 className="text-sm font-semibold text-green-300">Expert Solution</h3>
-                  <p className="text-xs text-green-200 mt-1">
-                    Status: {problem.hasSolution ? 'Available' : 'Not Available'}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🏆</span>
+                    <div>
+                      <h3 className="text-sm font-semibold text-green-300">Best Solution</h3>
+                      {problem.bestSolution && (
+                        <p className="text-xs text-green-200 mt-1">
+                          By: {problem.bestSolution.submittedBy?.name || 'Expert'}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
                 <div className="flex-1">
-                  {/* Check if expert has visual solution */}
-                  {problem.solutionWorkspace?.nodes && problem.solutionWorkspace.nodes.length > 0 ? (
+                  {problem.bestSolution?.solutionWorkspace?.nodes && problem.bestSolution.solutionWorkspace.nodes.length > 0 ? (
                     <div className="h-full bg-gray-50">
                       <ReactFlow
-                        nodes={problem.solutionWorkspace.nodes.map(node => ({
+                        nodes={problem.bestSolution.solutionWorkspace.nodes.map(node => ({
                           ...node,
                           id: node.id || generateId(),
                           position: node.position || { x: 100, y: 100 },
                           data: { label: node.label || node.data?.label || 'Component' }
                         }))}
-                        edges={problem.solutionWorkspace.edges || []}
+                        edges={problem.bestSolution.solutionWorkspace.edges || []}
                         nodesDraggable={false}
                         nodesConnectable={false}
                         elementsSelectable={false}
@@ -543,22 +729,20 @@ function ProblemSolving() {
                       </ReactFlow>
                     </div>
                   ) : (
-                    /* Written Solution Display */
-                    <div className="h-full p-4 overflow-y-auto">
-                      <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/30 h-full">
-                        <h4 className="text-sm font-semibold text-gray-300 mb-3">Expert Written Solution</h4>
-                        {problem.writtenSolution ? (
-                          <div className="prose prose-invert prose-sm max-w-none">
-                            <p className="text-gray-200 text-sm leading-relaxed whitespace-pre-wrap">
-                              {problem.writtenSolution}
+                    <div className="h-full p-4 overflow-y-auto bg-gray-50">
+                      <div className="bg-white rounded-lg p-4 border border-gray-200 h-full">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-3">Written Solution</h4>
+                        {problem.bestSolution?.writtenSolution ? (
+                          <div className="prose prose-sm max-w-none">
+                            <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
+                              {problem.bestSolution.writtenSolution}
                             </p>
                           </div>
                         ) : (
-                          <div className="flex items-center justify-center h-32 text-gray-500">
+                          <div className="flex items-center justify-center h-32 text-gray-400">
                             <div className="text-center">
                               <div className="text-2xl mb-2">📝</div>
-                              <p className="text-sm">No expert solution available yet</p>
-                              <p className="text-xs mt-1">This problem hasn't been solved by an expert</p>
+                              <p className="text-sm">No best solution available yet</p>
                             </div>
                           </div>
                         )}
@@ -567,15 +751,12 @@ function ProblemSolving() {
                   )}
                 </div>
                 
-                {/* Expert Notes Section */}
-                {(problem.solutionWorkspace?.notes || problem.writtenSolution) && (
-                  <div className="p-3 bg-gray-800/30 border-t border-gray-700/50">
-                    <h4 className="text-xs font-semibold text-gray-300 mb-2">Additional Notes:</h4>
-                    <div className="bg-gray-700/30 rounded p-2 max-h-24 overflow-y-auto">
-                      <p className="text-xs text-gray-300 whitespace-pre-wrap">
-                        {problem.solutionWorkspace?.notes || "See written solution above"}
-                      </p>
-                    </div>
+                {problem.bestSolution && (
+                  <div className="p-3 bg-gray-800/30 border-t border-gray-700/50 max-h-32 overflow-y-auto">
+                    <h4 className="text-xs font-semibold text-gray-300 mb-2">Solution Notes:</h4>
+                    <p className="text-xs text-gray-300 whitespace-pre-wrap">
+                      {problem.bestSolution.solutionWorkspace?.notes || problem.bestSolution.writtenSolution || "No notes provided"}
+                    </p>
                   </div>
                 )}
               </div>
@@ -583,61 +764,94 @@ function ProblemSolving() {
           )}
         </div>
 
-        {/* Solution Analysis Footer */}
-        {showSolution && (
+        {/* Footer - Stats and Analysis */}
+        {viewMode === 'comparison' && (
           <div className="bg-gray-800/50 border-t border-gray-700/50 p-4">
             <div className="max-w-6xl mx-auto">
-              <h3 className="text-sm font-semibold text-white mb-3">Solution Comparison</h3>
+              <h3 className="text-sm font-semibold text-white mb-3">Solution Analysis</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
                 <div className="bg-blue-600/10 border border-blue-500/20 rounded-lg p-3">
                   <h4 className="font-semibold text-blue-300 mb-1">Your Design</h4>
+                  <p className="text-gray-300">Components: {nodes.length - 1}</p>
+                  <p className="text-gray-300">Connections: {edges.length}</p>
                   <p className="text-gray-300">
-                    Components: {nodes.length - 1}
-                  </p>
-                  <p className="text-gray-300">
-                    Connections: {edges.length}
-                  </p>
-                  <p className="text-gray-300">
-                    Notes: {markdownNotes ? 'Provided' : 'None'}
+                    Votes: {userSolutions[selectedSolutionIndex]?.votes || 0}
                   </p>
                 </div>
                 <div className="bg-green-600/10 border border-green-500/20 rounded-lg p-3">
-                  <h4 className="font-semibold text-green-300 mb-1">Expert Design</h4>
+                  <h4 className="font-semibold text-green-300 mb-1">Best Solution</h4>
                   <p className="text-gray-300">
-                    Visual: {(problem.solutionWorkspace?.nodes?.length > 0) ? 'Available' : 'Text Only'}
+                    Components: {problem.bestSolution?.solutionWorkspace?.nodes?.length || 0}
                   </p>
                   <p className="text-gray-300">
-                    Written: {problem.writtenSolution ? 'Available' : 'None'}
+                    Connections: {problem.bestSolution?.solutionWorkspace?.edges?.length || 0}
                   </p>
                   <p className="text-gray-300">
-                    Status: {problem.hasSolution ? 'Complete' : 'Pending'}
+                    Votes: {problem.bestSolution?.votes || 0}
                   </p>
                 </div>
                 <div className="bg-purple-600/10 border border-purple-500/20 rounded-lg p-3">
-                  <h4 className="font-semibold text-purple-300 mb-1">Approach</h4>
+                  <h4 className="font-semibold text-purple-300 mb-1">Community</h4>
                   <p className="text-gray-300">
-                    {problem.solutionWorkspace?.nodes?.length > 0 ? 'Visual + Text' : 'Text-based'}
+                    Total Solutions: {problem.totalSolutionsCount || 0}
+                  </p>
+                  <p className="text-gray-300">
+                    Your Rank: {userSolutions.length > 0 ? `#${selectedSolutionIndex + 1}` : 'N/A'}
                   </p>
                 </div>
                 <div className="bg-yellow-600/10 border border-yellow-500/20 rounded-lg p-3">
                   <h4 className="font-semibold text-yellow-300 mb-1">Learning</h4>
                   <p className="text-gray-300">
-                    Compare architectures and reasoning
+                    Status: {userSolutions[selectedSolutionIndex]?.isApproved ? 'Approved ✓' : 'Under Review'}
                   </p>
+                  <button
+                    onClick={() => setViewMode('mySolutions')}
+                    className="mt-1 text-yellow-400 hover:text-yellow-300 underline"
+                  >
+                    View All Solutions
+                  </button>
                 </div>
               </div>
 
-              {/* Written Solution Section */}
-              <div className="mt-6">
-                <h4 className="text-sm font-semibold text-white mb-2">Expert Written Solution</h4>
-                <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/30">
-                  {problem.writtenSolution ? (
+              {/* Additional Analysis */}
+              {problem.bestSolution?.writtenSolution && (
+                <div className="mt-4">
+                  <h4 className="text-sm font-semibold text-white mb-2">Expert Commentary</h4>
+                  <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600/30">
                     <p className="text-gray-200 text-sm leading-relaxed whitespace-pre-wrap">
-                      {problem.writtenSolution}
+                      {problem.bestSolution.writtenSolution}
                     </p>
-                  ) : (
-                    <p className="text-gray-400 text-sm">No written solution available for this problem.</p>
-                  )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Footer - My Solutions Stats */}
+        {viewMode === 'mySolutions' && userSolutions.length > 0 && (
+          <div className="bg-gray-800/50 border-t border-gray-700/50 p-4">
+            <div className="max-w-6xl mx-auto">
+              <h3 className="text-sm font-semibold text-white mb-3">Your Progress</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                <div className="bg-blue-600/10 border border-blue-500/20 rounded-lg p-3">
+                  <h4 className="font-semibold text-blue-300 mb-1">Submissions</h4>
+                  <p className="text-2xl font-bold text-blue-400">{userSolutions.length}</p>
+                  <p className="text-gray-300 mt-1">Total attempts</p>
+                </div>
+                <div className="bg-green-600/10 border border-green-500/20 rounded-lg p-3">
+                  <h4 className="font-semibold text-green-300 mb-1">Approved</h4>
+                  <p className="text-2xl font-bold text-green-400">
+                    {userSolutions.filter(s => s.isApproved).length}
+                  </p>
+                  <p className="text-gray-300 mt-1">Solutions approved</p>
+                </div>
+                <div className="bg-purple-600/10 border border-purple-500/20 rounded-lg p-3">
+                  <h4 className="font-semibold text-purple-300 mb-1">Total Votes</h4>
+                  <p className="text-2xl font-bold text-purple-400">
+                    {userSolutions.reduce((sum, s) => sum + (s.votes || 0), 0)}
+                  </p>
+                  <p className="text-gray-300 mt-1">Community votes</p>
                 </div>
               </div>
             </div>

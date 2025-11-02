@@ -2,7 +2,7 @@ import { Router } from "express";
 import multer from "multer";
 import { getProblem, getSpecificProblem, ProblemInput } from "../Components/ProblemComponents.js";
 import { verifyToken } from "../Middleware/auth.js";
-
+import { submitUserSolution } from "../Components/ProblemComponents.js";
 const ProblemRouter = Router();
 
 // Configure multer for memory storage with multiple file support
@@ -75,6 +75,7 @@ ProblemRouter.post(
 
 ProblemRouter.get("/getProblem",getProblem);
 ProblemRouter.post("/getSpecificProblem",getSpecificProblem);
+ProblemRouter.post("/submit-solution",submitUserSolution); 
 
 
 export default ProblemRouter;

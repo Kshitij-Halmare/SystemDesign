@@ -96,7 +96,7 @@ function Header() {
               {/* Desktop Auth Links */}
               <div className='hidden lg:flex items-center gap-2'>
                 <NavLink 
-                  to="/signin"
+                  to="/register"
                   className={({ isActive }) =>
                     `flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
                       isActive
